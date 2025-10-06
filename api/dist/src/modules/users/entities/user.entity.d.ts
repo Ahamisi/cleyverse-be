@@ -37,4 +37,9 @@ export declare class User extends BaseEntity {
     socialLinks: any[];
     collections: any[];
     forms: any[];
+    stores: any[];
+    events: any[];
+    eventGuests: any[];
+    eventHosts: any[];
+    eventVendors: any[];
 }

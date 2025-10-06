@@ -91,4 +91,19 @@ export class User extends BaseEntity {
 
   @OneToMany('Form', 'user')
   forms: any[];
+
+  @OneToMany('Store', 'user')
+  stores: any[];
+
+  @OneToMany('Event', 'creator')
+  events: any[];
+
+  @OneToMany('EventGuest', 'user')
+  eventGuests: any[];
+
+  @OneToMany('EventHost', 'user')
+  eventHosts: any[];
+
+  @OneToMany('EventVendor', 'user')
+  eventVendors: any[];
 }

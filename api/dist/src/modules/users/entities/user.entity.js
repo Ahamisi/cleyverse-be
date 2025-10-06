@@ -52,6 +52,11 @@ let User = class User extends base_entity_1.BaseEntity {
     socialLinks;
     collections;
     forms;
+    stores;
+    events;
+    eventGuests;
+    eventHosts;
+    eventVendors;
 };
 exports.User = User;
 __decorate([
@@ -134,6 +139,26 @@ __decorate([
     (0, typeorm_1.OneToMany)('Form', 'user'),
     __metadata("design:type", Array)
 ], User.prototype, "forms", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)('Store', 'user'),
+    __metadata("design:type", Array)
+], User.prototype, "stores", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)('Event', 'creator'),
+    __metadata("design:type", Array)
+], User.prototype, "events", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)('EventGuest', 'user'),
+    __metadata("design:type", Array)
+], User.prototype, "eventGuests", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)('EventHost', 'user'),
+    __metadata("design:type", Array)
+], User.prototype, "eventHosts", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)('EventVendor', 'user'),
+    __metadata("design:type", Array)
+], User.prototype, "eventVendors", void 0);
 exports.User = User = __decorate([
     (0, typeorm_1.Entity)('users')
 ], User);

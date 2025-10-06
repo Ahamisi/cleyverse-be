@@ -163,7 +163,7 @@ export class FormService extends BaseService<Form> {
     const displayOrder = addFieldDto.displayOrder ?? (maxOrder?.max || 0) + 1;
 
     // Transform 'required' to 'isRequired' if provided
-    const fieldData = { ...addFieldDto };
+    const fieldData = { ...addFieldDto } as any;
     if (fieldData.required !== undefined) {
       fieldData.isRequired = fieldData.required;
       delete fieldData.required;
@@ -175,7 +175,7 @@ export class FormService extends BaseService<Form> {
       displayOrder,
     });
 
-    return this.formFieldRepository.save(field);
+    return this.formFieldRepository.save(field) as unknown as FormField;
   }
 
   async updateFormField(userId: string, formId: string, fieldId: string, updateFieldDto: UpdateFormFieldDto): Promise<FormField> {
@@ -191,7 +191,7 @@ export class FormService extends BaseService<Form> {
     }
 
     // Transform 'required' to 'isRequired' if provided
-    const updateData = { ...updateFieldDto };
+    const updateData = { ...updateFieldDto } as any;
     if (updateData.required !== undefined) {
       updateData.isRequired = updateData.required;
       delete updateData.required;
