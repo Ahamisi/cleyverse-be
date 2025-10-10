@@ -701,190 +701,6 @@ Events (Main Entity)
 
 ---
 
-## **🌟 EVENT DISCOVERY & RECOMMENDATIONS API**
-
-### **Explore Events** ⭐ **NEW**
-**Endpoint:** `GET /explore/events`  
-**Auth:** Optional  
-**Description:** Discover events with advanced filtering and search
-
-**Query Parameters:**
-- `page` (number) - Page number (default: 1)
-- `limit` (number) - Items per page (default: 20)
-- `sortBy` (string) - 'relevance', 'date', 'popularity', 'engagement', 'views' (default: 'relevance')
-- `sortOrder` (string) - 'ASC' or 'DESC' (default: 'DESC')
-- `filters` (object) - Advanced filtering options
-
-**Filter Options:**
-```json
-{
-  "location": {
-    "latitude": 1.3521,
-    "longitude": 103.8198,
-    "radius": 50
-  },
-  "categories": ["technology", "business"],
-  "tags": ["networking", "startup"],
-  "experienceLevel": "intermediate",
-  "industry": "technology",
-  "targetAudience": ["developers", "entrepreneurs"],
-  "dateRange": {
-    "start": "2024-12-01T00:00:00.000Z",
-    "end": "2024-12-31T23:59:59.999Z"
-  },
-  "eventType": "meetup",
-  "locationType": "physical"
-}
-```
-
-**Response:**
-```json
-{
-  "message": "Events retrieved successfully",
-  "events": [
-    {
-      "id": "event-id",
-      "title": "Tech Startup Meetup",
-      "description": "Connect with fellow entrepreneurs",
-      "startDate": "2024-12-15T18:00:00.000Z",
-      "locationType": "physical",
-      "venueName": "Innovation Hub",
-      "categories": ["technology", "business"],
-      "tags": ["networking", "startup"],
-      "engagementScore": 85.5,
-      "viewCount": 1250,
-      "likeCount": 45,
-      "bookmarkCount": 23
-    }
-  ],
-  "total": 150,
-  "page": 1,
-  "limit": 20,
-  "totalPages": 8
-}
-```
-
-### **Get Personalized Recommendations** ⭐ **NEW**
-**Endpoint:** `GET /events/recommendations`  
-**Auth:** Required  
-**Description:** Get personalized event recommendations based on user behavior
-
-**Query Parameters:**
-- `limit` (number) - Number of recommendations (default: 10)
-
-**Response:**
-```json
-{
-  "message": "Personalized recommendations retrieved successfully",
-  "events": [
-    {
-      "id": "event-id",
-      "title": "AI & Machine Learning Workshop",
-      "startDate": "2024-12-20T09:00:00.000Z",
-      "categories": ["technology", "education"],
-      "engagementScore": 92.3
-    }
-  ],
-  "total": 10
-}
-```
-
-### **Get Nearby Events** ⭐ **NEW**
-**Endpoint:** `GET /events/nearby`  
-**Auth:** Optional  
-**Description:** Find events near a specific location
-
-**Query Parameters:**
-- `latitude` (number) - Required
-- `longitude` (number) - Required  
-- `radius` (number) - Search radius in km (default: 50)
-- `limit` (number) - Max results (default: 10)
-
-**Response:**
-```json
-{
-  "message": "Nearby events retrieved successfully",
-  "events": [
-    {
-      "id": "event-id",
-      "title": "Local Tech Meetup",
-      "distance": 2.5,
-      "venueName": "Downtown Conference Center",
-      "latitude": 1.3521,
-      "longitude": 103.8198
-    }
-  ],
-  "total": 5
-}
-```
-
-### **Get Trending Events** ⭐ **NEW**
-**Endpoint:** `GET /events/trending`  
-**Auth:** Optional  
-**Description:** Get events with high engagement in the last 7 days
-
-**Response:**
-```json
-{
-  "message": "Trending events retrieved successfully",
-  "events": [
-    {
-      "id": "event-id",
-      "title": "Viral Tech Conference",
-      "engagementScore": 98.7,
-      "viewCount": 5000,
-      "likeCount": 250
-    }
-  ],
-  "total": 10
-}
-```
-
-### **Track Event Interaction** ⭐ **NEW**
-**Endpoint:** `POST /events/:eventId/interact`  
-**Auth:** Required  
-**Description:** Track user interactions for recommendation engine
-
-**Request Body:**
-```json
-{
-  "type": "like",
-  "metadata": {
-    "source": "event_page",
-    "duration": 120
-  }
-}
-```
-
-**Interaction Types:**
-- `view` - User viewed the event
-- `like` - User liked the event
-- `bookmark` - User bookmarked/saved the event
-- `share` - User shared the event
-- `register` - User registered for the event
-- `attend` - User attended the event
-
-### **Subscribe to Event** ⭐ **NEW**
-**Endpoint:** `POST /events/:eventId/subscribe`  
-**Auth:** Required  
-**Description:** Subscribe to event updates and notifications
-
-**Response:**
-```json
-{
-  "message": "Subscribed to event successfully",
-  "subscription": {
-    "id": "subscription-id",
-    "eventId": "event-id",
-    "userId": "user-id",
-    "notifyUpdates": true,
-    "notifyReminders": true
-  }
-}
-```
-
----
-
 ## **🔄 RECURRING EVENTS API**
 
 ### **Create Recurring Event** ⭐ **NEW**
@@ -997,6 +813,14 @@ Events (Main Entity)
 **Endpoint:** `POST /events/:eventId/vendors/apply`  
 **Auth:** Required  
 **Description:** Apply to be a vendor at the event
+
+> **⚠️ IMPORTANT**: This endpoint now integrates with the **Forms Module**. Event organizers should create a vendor application form using the Forms API and link it to their event using the `vendorFormId` field.
+
+**Prerequisites:**
+1. Event organizer creates a vendor application form: `POST /forms`
+2. Event organizer links the form to the event: `POST /events/:eventId/forms/vendor`
+3. Vendors can then access the public form: `GET /forms/:formId/public`
+4. Vendors submit the form: `POST /forms/:formId/submit`
 
 **Request Body:**
 ```json
@@ -1445,6 +1269,587 @@ curl -X GET "http://localhost:3000/events/search?search=tech&type=meetup&page=1&
 
 ---
 
+## **📋 Forms Integration**
+
+### **Link Vendor Form to Event**
+**Endpoint:** `POST /events/:eventId/forms/vendor`  
+**Auth:** Required (Event Owner)  
+**Description:** Link a vendor application form to the event
+
+**Request Body:**
+```json
+{
+  "formId": "form-uuid-from-forms-module"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Vendor form linked to event successfully",
+  "event": {
+    "id": "event-id",
+    "vendorFormId": "form-uuid-from-forms-module"
+  }
+}
+```
+
+---
+
+### **Link Guest Registration Form to Event**
+**Endpoint:** `POST /events/:eventId/forms/guest`  
+**Auth:** Required (Event Owner)  
+**Description:** Link a guest registration form to the event
+
+**Request Body:**
+```json
+{
+  "formId": "form-uuid-from-forms-module"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Guest registration form linked to event successfully",
+  "event": {
+    "id": "event-id",
+    "guestFormId": "form-uuid-from-forms-module"
+  }
+}
+```
+
+---
+
+### **Get Event Forms**
+**Endpoint:** `GET /events/:eventId/forms`  
+**Auth:** Required (Event Owner)  
+**Description:** Get the linked forms for an event
+
+**Response:**
+```json
+{
+  "message": "Event forms retrieved successfully",
+  "forms": {
+    "vendorFormId": "form-uuid-or-null",
+    "guestFormId": "form-uuid-or-null"
+  }
+}
+```
+
+---
+
+### **Get Public Event Forms**
+**Endpoint:** `GET /events/:eventId/public-forms`  
+**Auth:** None (Public)  
+**Description:** Get the public form URLs for vendors and guests
+
+**Response:**
+```json
+{
+  "message": "Public event forms retrieved successfully",
+  "forms": {
+    "vendorFormId": "form-uuid-or-null",
+    "guestFormId": "form-uuid-or-null",
+    "vendorFormUrl": "https://app.cleyverse.com/forms/form-uuid",
+    "guestFormUrl": "https://app.cleyverse.com/forms/form-uuid"
+  }
+}
+```
+
+---
+
+### **Remove Vendor Form from Event**
+**Endpoint:** `DELETE /events/:eventId/forms/vendor`  
+**Auth:** Required (Event Owner)  
+**Description:** Remove the vendor form link from the event
+
+**Response:**
+```json
+{
+  "message": "Vendor form removed from event successfully",
+  "event": {
+    "id": "event-id",
+    "vendorFormId": null
+  }
+}
+```
+
+---
+
+### **Remove Guest Form from Event**
+**Endpoint:** `DELETE /events/:eventId/forms/guest`  
+**Auth:** Required (Event Owner)  
+**Description:** Remove the guest registration form link from the event
+
+**Response:**
+```json
+{
+  "message": "Guest registration form removed from event successfully",
+  "event": {
+    "id": "event-id",
+    "guestFormId": null
+  }
+}
+```
+
+---
+
+## **🔄 Vendor Application Workflow with Forms**
+
+### **For Event Organizers:**
+1. **Create Event**: `POST /events`
+2. **Create Vendor Application Form**: `POST /forms` (using Forms Module)
+   ```json
+   {
+     "title": "Vendor Application - Tech Meetup 2024",
+     "type": "blank",
+     "introduction": "Apply to be a vendor at our tech meetup",
+     "thankYouMessage": "Thank you for your application!"
+   }
+   ```
+3. **Add Form Fields**: `POST /forms/:formId/fields`
+   ```json
+   {
+     "label": "Business Name",
+     "type": "text",
+     "isRequired": true
+   }
+   ```
+4. **Link Form to Event**: `POST /events/:eventId/forms/vendor`
+5. **Share Public Form URL**: Vendors access `https://app.cleyverse.com/forms/:formId`
+
+### **For Vendors:**
+1. **Access Public Form**: `GET /forms/:formId/public`
+2. **Submit Application**: `POST /forms/:formId/submit`
+3. **Apply as Vendor**: `POST /events/:eventId/vendors/apply` (traditional endpoint still works)
+
+### **Integration Benefits:**
+- ✅ **Flexible Forms**: Event organizers can create custom vendor application forms
+- ✅ **Reusable**: Same form can be used for multiple events
+- ✅ **Analytics**: Form submission analytics through Forms Module
+- ✅ **Public Access**: Vendors can apply without authentication via public form URLs
+- ✅ **Backward Compatible**: Existing vendor application endpoint still works
+
+---
+
+## **🏢 BOOTH MANAGEMENT API** ⭐ **NEW**
+
+### **Create Single Booth**
+**Endpoint:** `POST /events/:eventId/booths`  
+**Auth:** Required (Event Owner)  
+**Description:** Create a single booth for the event
+
+**Request Body:**
+```json
+{
+  "boothNumber": "A-1",
+  "boothType": "premium",
+  "section": "Main Hall",
+  "floor": "Ground Floor",
+  "sizeDescription": "3x3",
+  "sizeWidth": 3.0,
+  "sizeLength": 3.0,
+  "basePrice": 500.00,
+  "premiumMultiplier": 1.5,
+  "hasPower": true,
+  "powerOutlets": 2,
+  "hasWifi": true,
+  "hasStorage": false,
+  "hasSink": false,
+  "maxOccupancy": 4,
+  "description": "Premium corner booth with extra visibility",
+  "accessibilityFeatures": ["wheelchair_accessible"]
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Booth created successfully",
+  "booth": {
+    "id": "booth-id",
+    "boothNumber": "A-1",
+    "boothType": "premium",
+    "status": "available",
+    "basePrice": 500.00,
+    "totalPrice": 750.00
+  }
+}
+```
+
+---
+
+### **Bulk Create Booths** ⭐ **NEW**
+**Endpoint:** `POST /events/:eventId/booths/bulk`  
+**Auth:** Required (Event Owner)  
+**Description:** Auto-generate multiple booths at once
+
+**Request Body:**
+```json
+{
+  "template": {
+    "boothType": "standard",
+    "section": "Main Hall",
+    "floor": "Ground Floor",
+    "sizeDescription": "3x3",
+    "basePrice": 500.00,
+    "hasPower": true,
+    "powerOutlets": 2,
+    "hasWifi": true,
+    "hasStorage": false,
+    "maxOccupancy": 4
+  },
+  "autoGenerate": {
+    "prefix": "A-",
+    "startNumber": 1,
+    "count": 20
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Booths created successfully",
+  "booths": [
+    {
+      "id": "booth-1-id",
+      "boothNumber": "A-1",
+      "status": "available"
+    },
+    {
+      "id": "booth-2-id",
+      "boothNumber": "A-2",
+      "status": "available"
+    }
+  ],
+  "total": 20,
+  "boothNumbers": ["A-1", "A-2", "A-3", "...", "A-20"]
+}
+```
+
+---
+
+### **Get All Event Booths**
+**Endpoint:** `GET /events/:eventId/booths`  
+**Auth:** Required (Event Owner)  
+**Description:** Get all booths for the event
+
+**Response:**
+```json
+{
+  "message": "Event booths retrieved successfully",
+  "booths": [
+    {
+      "id": "booth-id",
+      "boothNumber": "A-1",
+      "boothType": "premium",
+      "status": "reserved",
+      "section": "Main Hall",
+      "basePrice": 500.00,
+      "premiumMultiplier": 1.5,
+      "totalPrice": 750.00,
+      "vendor": {
+        "id": "vendor-id",
+        "businessName": "TechGadgets Singapore"
+      }
+    }
+  ],
+  "total": 20
+}
+```
+
+---
+
+### **Get Available Booths**
+**Endpoint:** `GET /events/:eventId/booths/available`  
+**Auth:** Required (Event Owner)  
+**Description:** Get only available booths
+
+**Response:**
+```json
+{
+  "message": "Available booths retrieved successfully",
+  "booths": [
+    {
+      "id": "booth-id",
+      "boothNumber": "A-5",
+      "boothType": "standard",
+      "status": "available",
+      "basePrice": 500.00,
+      "hasPower": true,
+      "hasWifi": true
+    }
+  ],
+  "total": 12
+}
+```
+
+---
+
+### **Get Booth Suggestions** ⭐ **NEW**
+**Endpoint:** `GET /events/:eventId/booths/suggestions`  
+**Auth:** Required  
+**Description:** Get booth suggestions based on vendor requirements
+
+**Query Parameters:**
+- `preferredSection` (string) - e.g., "Main Hall", "Tech Zone"
+- `needsPower` (boolean)
+- `needsWifi` (boolean)
+- `needsStorage` (boolean)
+- `needsSink` (boolean)
+- `maxPrice` (number)
+
+**Example:**
+```bash
+GET /events/:eventId/booths/suggestions?needsPower=true&needsWifi=true&maxPrice=600
+```
+
+**Response:**
+```json
+{
+  "message": "Booth suggestions retrieved successfully",
+  "suggestions": [
+    {
+      "id": "booth-id",
+      "boothNumber": "A-3",
+      "boothType": "standard",
+      "basePrice": 500.00,
+      "hasPower": true,
+      "hasWifi": true,
+      "section": "Main Hall"
+    }
+  ],
+  "total": 5,
+  "criteria": {
+    "needsPower": true,
+    "needsWifi": true,
+    "maxPrice": 600
+  }
+}
+```
+
+---
+
+### **Assign Booth to Vendor**
+**Endpoint:** `PUT /events/:eventId/booths/:boothId/assign/:vendorId`  
+**Auth:** Required (Event Owner)  
+**Description:** Assign a specific booth to an approved vendor
+
+**Response:**
+```json
+{
+  "message": "Booth assigned to vendor successfully",
+  "booth": {
+    "id": "booth-id",
+    "boothNumber": "A-12",
+    "status": "reserved",
+    "vendorId": "vendor-id"
+  }
+}
+```
+
+---
+
+### **Booth Analytics** ⭐ **NEW**
+**Endpoint:** `GET /events/:eventId/booths/analytics`  
+**Auth:** Required (Event Owner)  
+**Description:** Get booth occupancy and revenue analytics
+
+**Response:**
+```json
+{
+  "message": "Booth analytics retrieved successfully",
+  "analytics": {
+    "total": 20,
+    "available": 12,
+    "reserved": 6,
+    "occupied": 2,
+    "maintenance": 0,
+    "occupancyRate": "40.00",
+    "totalRevenue": 4500.00,
+    "averagePrice": "562.50",
+    "byType": {
+      "standard": 15,
+      "premium": 3,
+      "corner": 2,
+      "island": 0,
+      "food": 0,
+      "tech": 0
+    }
+  }
+}
+```
+
+---
+
+## **📋 FORM SUBMISSIONS REVIEW API** ⭐ **NEW**
+
+### **Get Vendor Applications from Forms**
+**Endpoint:** `GET /events/:eventId/form-submissions/vendors`  
+**Auth:** Required (Event Owner)  
+**Description:** Get all vendor applications submitted via forms
+
+**Response:**
+```json
+{
+  "message": "Vendor applications retrieved successfully",
+  "applications": [
+    {
+      "submissionId": "submission-uuid",
+      "submittedAt": "2024-10-10T10:00:00.000Z",
+      "formData": {
+        "field-1": "TechGadgets Singapore",
+        "field-2": "michael@techgadgets.sg",
+        "field-3": "We sell cutting-edge tech gadgets"
+      },
+      "vendor": {
+        "id": "vendor-id",
+        "status": "applied",
+        "appliedAt": "2024-10-10T10:00:00.000Z"
+      },
+      "status": "pending_review"
+    }
+  ],
+  "total": 5
+}
+```
+
+---
+
+### **Get Guest Registrations from Forms**
+**Endpoint:** `GET /events/:eventId/form-submissions/guests`  
+**Auth:** Required (Event Owner)  
+**Description:** Get all guest registrations submitted via forms
+
+**Response:**
+```json
+{
+  "message": "Guest registrations retrieved successfully",
+  "registrations": [
+    {
+      "submissionId": "submission-uuid",
+      "submittedAt": "2024-10-10T12:00:00.000Z",
+      "formData": {
+        "field-1": "Jane Smith",
+        "field-2": "jane@example.com",
+        "field-3": "Vegetarian"
+      },
+      "guest": {
+        "id": "guest-id",
+        "status": "registered",
+        "registeredAt": "2024-10-10T12:00:00.000Z"
+      },
+      "status": "registered"
+    }
+  ],
+  "total": 45
+}
+```
+
+---
+
+### **Approve Vendor from Form Submission** ⭐ **NEW**
+**Endpoint:** `POST /events/:eventId/form-submissions/vendors/:submissionId/approve`  
+**Auth:** Required (Event Owner)  
+**Description:** Approve vendor application and assign booth/fee
+
+**Request Body:**
+```json
+{
+  "boothId": "booth-uuid-A-12",
+  "vendorFee": 500.00,
+  "commissionRate": 5.0,
+  "reviewNotes": "Great product lineup! Looking forward to having you at the event.",
+  "paymentDueDate": "2024-12-01T23:59:59.000Z"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Vendor approved successfully",
+  "vendor": {
+    "id": "vendor-id",
+    "status": "approved",
+    "vendorFee": 500.00,
+    "feePaid": false,
+    "paymentDueDate": "2024-12-01T23:59:59.000Z",
+    "boothId": "booth-uuid-A-12",
+    "commissionRate": 5.0,
+    "reviewedAt": "2024-10-10T14:00:00.000Z"
+  }
+}
+```
+
+---
+
+### **Reject Vendor from Form Submission**
+**Endpoint:** `POST /events/:eventId/form-submissions/vendors/:submissionId/reject`  
+**Auth:** Required (Event Owner)  
+**Description:** Reject vendor application
+
+**Request Body:**
+```json
+{
+  "reviewNotes": "Thank you for your interest",
+  "rejectionReason": "Product doesn't align with event theme"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Vendor rejected successfully"
+}
+```
+
+---
+
+## **💰 VENDOR PAYMENT ENFORCEMENT** ⭐ **NEW**
+
+### **Link Product to Event (Payment Required)**
+**Endpoint:** `POST /events/:eventId/products/link`  
+**Auth:** Required (Approved Vendor)  
+**Description:** Link shop products to the event for sale
+
+> **🚫 PAYMENT REQUIRED**: Vendors must pay their vendor fee before linking products to the event.
+
+**Request Body:**
+```json
+{
+  "productId": "product-uuid-from-shop",
+  "eventPrice": 89.99,
+  "eventDiscount": 10.0,
+  "availableQuantity": 50,
+  "isFeatured": true
+}
+```
+
+**Success Response (If Fee is Paid):**
+```json
+{
+  "message": "Product linked to event successfully",
+  "eventProduct": {
+    "id": "event-product-id",
+    "productId": "product-uuid-from-shop",
+    "status": "pending",
+    "eventPrice": 89.99
+  }
+}
+```
+
+**Error Response (If Fee Not Paid):**
+```json
+{
+  "message": "You must pay the vendor fee of $500 before linking products to this event. Payment is due by 12/1/2024.",
+  "statusCode": 400
+}
+```
+
+---
+
 ## **📈 PERFORMANCE & SCALABILITY**
 
 ### **🚀 Key Metrics**
@@ -1462,11 +1867,23 @@ curl -X GET "http://localhost:3000/events/search?search=tech&type=meetup&page=1&
 
 ---
 
-**Total Endpoints:** 25+  
-**Authentication Required:** 18  
-**Public Endpoints:** 7  
+**Total Endpoints:** 35+  
+**Authentication Required:** 25  
+**Public Endpoints:** 10  
 **Guest Management:** 8  
-**Vendor Management:** 6  
-**Analytics:** 2  
+**Vendor Management:** 10  
+**Booth Management:** 6  
+**Form Submissions Review:** 4  
+**Analytics:** 3  
+**Forms Integration:** 6  
+**Recurring Events:** 5  
+**Host Management:** 6  
 
 This comprehensive Events API provides all the functionality needed to build a world-class event management platform like Luma, fully integrated with the Cleyverse ecosystem. The system is designed for scale, performance, and an exceptional user experience across web and mobile platforms.
+
+**🎯 KEY INTEGRATIONS:**
+- ✅ **Forms Module** - Single source of truth for all forms
+- ✅ **Shop Module** - Vendor products linked to events
+- ✅ **Payment Module** - Vendor fee enforcement (coming soon)
+- ✅ **Booth Management** - Auto-generation and smart assignment
+- ✅ **Public Access** - Vendors and guests can apply without auth

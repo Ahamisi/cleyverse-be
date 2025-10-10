@@ -54,5 +54,6 @@ export declare class EventGuest {
     cancellationReason: string | null;
     waitlistPosition: number | null;
     waitlistedAt: Date | null;
+    formSubmissionId: string | null;
     answers: any[];
 }

@@ -35,14 +35,11 @@ let VendorService = class VendorService {
         if (!event) {
             throw new common_1.NotFoundException('Event not found');
         }
-        if (!event.allowVendors) {
-            throw new common_1.BadRequestException('This event does not allow vendors');
-        }
         if (event.vendorApplicationDeadline && new Date() > event.vendorApplicationDeadline) {
             throw new common_1.BadRequestException('Vendor application deadline has passed');
         }
-        if ([event_entity_1.EventStatus.COMPLETED, event_entity_1.EventStatus.CANCELLED, event_entity_1.EventStatus.ARCHIVED].includes(event.status)) {
-            throw new common_1.BadRequestException('Cannot apply to completed, cancelled, or archived events');
+        if ([event_entity_1.EventStatus.CANCELLED, event_entity_1.EventStatus.ARCHIVED].includes(event.status)) {
+            throw new common_1.BadRequestException('Cannot apply to cancelled or archived events');
         }
         const existingApplication = await this.vendorRepository.findOne({
             where: { eventId, userId }
@@ -136,6 +133,10 @@ let VendorService = class VendorService {
         });
         if (!vendor) {
             throw new common_1.NotFoundException('You are not an approved vendor for this event');
+        }
+        if (vendor.vendorFee && vendor.vendorFee > 0 && !vendor.feePaid) {
+            throw new common_1.BadRequestException(`You must pay the vendor fee of $${vendor.vendorFee} before linking products to this event. ` +
+                `Payment is due by ${vendor.paymentDueDate?.toLocaleDateString()}.`);
         }
         const existingLink = await this.eventProductRepository.findOne({
             where: { eventId, productId: linkDto.productId }

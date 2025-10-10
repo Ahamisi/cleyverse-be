@@ -139,6 +139,13 @@ export class Event {
   @Column({ name: 'bookmark_count', type: 'int', default: 0 })
   bookmarkCount: number;
 
+  // Forms Integration
+  @Column({ name: 'vendor_form_id', type: 'uuid', nullable: true })
+  vendorFormId: string | null; // Links to Forms module for vendor applications
+
+  @Column({ name: 'guest_form_id', type: 'uuid', nullable: true })
+  guestFormId: string | null; // Links to Forms module for guest registration
+
   @Column({ name: 'engagement_score', type: 'decimal', precision: 5, scale: 2, default: 0 })
   engagementScore: number; // Calculated score for recommendations
 

@@ -64,6 +64,8 @@ export declare class Event {
     industry: string | null;
     likeCount: number;
     bookmarkCount: number;
+    vendorFormId: string | null;
+    guestFormId: string | null;
     engagementScore: number;
     virtualLink: string | null;
     meetingId: string | null;

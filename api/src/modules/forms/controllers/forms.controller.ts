@@ -169,6 +169,33 @@ export class FormsController {
     return { message: 'Form submissions retrieved successfully', submissions, total: submissions.length };
   }
 
+  // Event Integration Endpoints
+  @Post(':id/link-to-event/:eventId')
+  @UseGuards(JwtAuthGuard)
+  async linkToEvent(
+    @Request() req, 
+    @Param('id') formId: string, 
+    @Param('eventId') eventId: string,
+    @Body() body: { formPurpose: 'registration' | 'vendor' | 'guest'; eventTitle?: string; eventSlug?: string }
+  ) {
+    const form = await this.formService.linkToEvent(req.user.userId, formId, eventId, body.formPurpose, body.eventTitle, body.eventSlug);
+    return { message: 'Form linked to event successfully', form };
+  }
+
+  @Delete(':id/unlink-from-event')
+  @UseGuards(JwtAuthGuard)
+  async unlinkFromEvent(@Request() req, @Param('id') formId: string) {
+    const form = await this.formService.unlinkFromEvent(req.user.userId, formId);
+    return { message: 'Form unlinked from event successfully', form };
+  }
+
+  @Get('by-purpose/:purpose')
+  @UseGuards(JwtAuthGuard)
+  async getFormsByPurpose(@Request() req, @Param('purpose') purpose: 'registration' | 'vendor' | 'guest') {
+    const forms = await this.formService.getFormsByPurpose(req.user.userId, purpose);
+    return { message: `${purpose} forms retrieved successfully`, forms, total: forms.length };
+  }
+
   // Helper methods for formatting
   private validateUUID(id: string, fieldName: string = 'ID'): void {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

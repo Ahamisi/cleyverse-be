@@ -18,7 +18,7 @@ export declare class EventVendor {
     createdAt: Date;
     updatedAt: Date;
     eventId: string;
-    userId: string;
+    userId: string | null;
     storeId: string | null;
     event: any;
     user: any;
@@ -42,7 +42,11 @@ export declare class EventVendor {
     vendorFee: number | null;
     feePaid: boolean;
     paymentDueDate: Date | null;
+    paymentId: string | null;
+    paymentMethod: string | null;
+    paidAt: Date | null;
     commissionRate: number | null;
+    boothId: string | null;
     contactName: string;
     contactEmail: string;
     contactPhone: string | null;
@@ -53,6 +57,7 @@ export declare class EventVendor {
     totalSales: number;
     totalOrders: number;
     boothVisits: number;
+    formSubmissionId: string | null;
     isFeatured: boolean;
     displayOrder: number;
     isActive: boolean;

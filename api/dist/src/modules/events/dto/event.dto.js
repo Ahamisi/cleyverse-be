@@ -48,6 +48,8 @@ class CreateEventDto {
     allowVendors;
     vendorApplicationDeadline;
     vendorFee;
+    vendorFormId;
+    guestFormId;
 }
 exports.CreateEventDto = CreateEventDto;
 __decorate([
@@ -229,6 +231,16 @@ __decorate([
     (0, class_validator_1.Min)(0),
     __metadata("design:type", Number)
 ], CreateEventDto.prototype, "vendorFee", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsUUID)(),
+    __metadata("design:type", String)
+], CreateEventDto.prototype, "vendorFormId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsUUID)(),
+    __metadata("design:type", String)
+], CreateEventDto.prototype, "guestFormId", void 0);
 class UpdateEventDto {
     title;
     description;

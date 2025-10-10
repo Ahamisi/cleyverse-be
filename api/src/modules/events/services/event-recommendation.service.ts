@@ -78,7 +78,7 @@ export class EventRecommendationService {
     queryBuilder
       .orderBy('event.engagementScore', 'DESC')
       .addOrderBy('event.viewCount', 'DESC')
-      .addOrderBy('event.registrationCount', 'DESC')
+      .addOrderBy('event.totalRegistered', 'DESC')
       .limit(limit);
 
     return queryBuilder.getMany();
@@ -152,7 +152,7 @@ export class EventRecommendationService {
       .andWhere('event.startDate > :now', { now: new Date() })
       .andWhere('event.updatedAt > :sevenDaysAgo', { sevenDaysAgo })
       .orderBy('event.engagementScore', 'DESC')
-      .addOrderBy('event.registrationCount', 'DESC')
+      .addOrderBy('event.totalRegistered', 'DESC')
       .addOrderBy('event.viewCount', 'DESC')
       .limit(limit)
       .getMany();
@@ -333,7 +333,7 @@ export class EventRecommendationService {
         queryBuilder.orderBy('event.startDate', sortOrder);
         break;
       case 'popularity':
-        queryBuilder.orderBy('event.registrationCount', sortOrder);
+        queryBuilder.orderBy('event.totalRegistered', sortOrder);
         break;
       case 'engagement':
         queryBuilder.orderBy('event.engagementScore', sortOrder);
@@ -348,7 +348,7 @@ export class EventRecommendationService {
       default: // 'relevance'
         queryBuilder
           .orderBy('event.engagementScore', 'DESC')
-          .addOrderBy('event.registrationCount', 'DESC')
+          .addOrderBy('event.totalRegistered', 'DESC')
           .addOrderBy('event.viewCount', 'DESC');
     }
   }

@@ -147,6 +147,15 @@ export class CreateEventDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   vendorFee?: number;
+
+  // Forms Integration
+  @IsOptional()
+  @IsUUID()
+  vendorFormId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  guestFormId?: string;
 }
 
 export class UpdateEventDto {

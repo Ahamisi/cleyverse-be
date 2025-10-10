@@ -57,7 +57,11 @@ let EventVendor = class EventVendor {
     vendorFee;
     feePaid;
     paymentDueDate;
+    paymentId;
+    paymentMethod;
+    paidAt;
     commissionRate;
+    boothId;
     contactName;
     contactEmail;
     contactPhone;
@@ -68,6 +72,7 @@ let EventVendor = class EventVendor {
     totalSales;
     totalOrders;
     boothVisits;
+    formSubmissionId;
     isFeatured;
     displayOrder;
     isActive;
@@ -90,8 +95,8 @@ __decorate([
     __metadata("design:type", String)
 ], EventVendor.prototype, "eventId", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ name: 'user_id', type: 'uuid' }),
-    __metadata("design:type", String)
+    (0, typeorm_1.Column)({ name: 'user_id', type: 'uuid', nullable: true }),
+    __metadata("design:type", Object)
 ], EventVendor.prototype, "userId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'store_id', type: 'uuid', nullable: true }),
@@ -189,9 +194,25 @@ __decorate([
     __metadata("design:type", Object)
 ], EventVendor.prototype, "paymentDueDate", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: 'payment_id', type: 'varchar', length: 100, nullable: true }),
+    __metadata("design:type", Object)
+], EventVendor.prototype, "paymentId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'payment_method', type: 'varchar', length: 50, nullable: true }),
+    __metadata("design:type", Object)
+], EventVendor.prototype, "paymentMethod", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'paid_at', type: 'timestamp', nullable: true }),
+    __metadata("design:type", Object)
+], EventVendor.prototype, "paidAt", void 0);
+__decorate([
     (0, typeorm_1.Column)({ name: 'commission_rate', type: 'decimal', precision: 5, scale: 2, nullable: true }),
     __metadata("design:type", Object)
 ], EventVendor.prototype, "commissionRate", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'booth_id', type: 'uuid', nullable: true }),
+    __metadata("design:type", Object)
+], EventVendor.prototype, "boothId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'contact_name', type: 'varchar', length: 100 }),
     __metadata("design:type", String)
@@ -232,6 +253,10 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'booth_visits', type: 'int', default: 0 }),
     __metadata("design:type", Number)
 ], EventVendor.prototype, "boothVisits", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'form_submission_id', type: 'uuid', nullable: true }),
+    __metadata("design:type", Object)
+], EventVendor.prototype, "formSubmissionId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'is_featured', type: 'boolean', default: false }),
     __metadata("design:type", Boolean)

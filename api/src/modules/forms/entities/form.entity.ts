@@ -8,6 +8,9 @@ export enum FormType {
   BLANK = 'blank',
   EMAIL_SIGNUP = 'email_signup',
   CONTACT_FORM = 'contact_form',
+  EVENT_REGISTRATION = 'event_registration',
+  VENDOR_APPLICATION = 'vendor_application',
+  GUEST_REGISTRATION = 'guest_registration',
 }
 
 export enum FormStatus {
@@ -37,6 +40,15 @@ export class Form extends BaseEntity {
 
   @Column({ name: 'thank_you_message', type: 'text', nullable: true })
   thankYouMessage: string | null;
+
+  // Event Context for Forms Integration
+  @Column({ name: 'event_context', type: 'jsonb', nullable: true })
+  eventContext: {
+    eventId?: string;
+    formPurpose?: 'registration' | 'vendor' | 'guest';
+    eventTitle?: string;
+    eventSlug?: string;
+  } | null;
 
   @Column({ name: 'custom_terms', type: 'text', nullable: true })
   customTerms: string | null;

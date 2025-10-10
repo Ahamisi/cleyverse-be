@@ -20,6 +20,9 @@ var FormType;
     FormType["BLANK"] = "blank";
     FormType["EMAIL_SIGNUP"] = "email_signup";
     FormType["CONTACT_FORM"] = "contact_form";
+    FormType["EVENT_REGISTRATION"] = "event_registration";
+    FormType["VENDOR_APPLICATION"] = "vendor_application";
+    FormType["GUEST_REGISTRATION"] = "guest_registration";
 })(FormType || (exports.FormType = FormType = {}));
 var FormStatus;
 (function (FormStatus) {
@@ -34,6 +37,7 @@ let Form = class Form extends base_entity_1.BaseEntity {
     type;
     introduction;
     thankYouMessage;
+    eventContext;
     customTerms;
     requireTermsAcceptance;
     collectEmailAddresses;
@@ -72,6 +76,10 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'thank_you_message', type: 'text', nullable: true }),
     __metadata("design:type", Object)
 ], Form.prototype, "thankYouMessage", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'event_context', type: 'jsonb', nullable: true }),
+    __metadata("design:type", Object)
+], Form.prototype, "eventContext", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'custom_terms', type: 'text', nullable: true }),
     __metadata("design:type", Object)

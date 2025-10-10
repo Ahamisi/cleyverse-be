@@ -70,6 +70,7 @@ let EventGuest = class EventGuest {
     cancellationReason;
     waitlistPosition;
     waitlistedAt;
+    formSubmissionId;
     answers;
 };
 exports.EventGuest = EventGuest;
@@ -195,6 +196,10 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'waitlisted_at', type: 'timestamp', nullable: true }),
     __metadata("design:type", Object)
 ], EventGuest.prototype, "waitlistedAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'form_submission_id', type: 'uuid', nullable: true }),
+    __metadata("design:type", Object)
+], EventGuest.prototype, "formSubmissionId", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)('EventGuestAnswer', 'guest'),
     __metadata("design:type", Array)

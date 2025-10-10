@@ -82,6 +82,8 @@ let Event = class Event {
     industry;
     likeCount;
     bookmarkCount;
+    vendorFormId;
+    guestFormId;
     engagementScore;
     virtualLink;
     meetingId;
@@ -239,6 +241,14 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'bookmark_count', type: 'int', default: 0 }),
     __metadata("design:type", Number)
 ], Event.prototype, "bookmarkCount", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'vendor_form_id', type: 'uuid', nullable: true }),
+    __metadata("design:type", Object)
+], Event.prototype, "vendorFormId", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'guest_form_id', type: 'uuid', nullable: true }),
+    __metadata("design:type", Object)
+], Event.prototype, "guestFormId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'engagement_score', type: 'decimal', precision: 5, scale: 2, default: 0 }),
     __metadata("design:type", Number)

@@ -18,7 +18,7 @@ export class VendorService {
   ) {}
 
   async applyAsVendor(userId: string, eventId: string, applyDto: ApplyAsVendorDto): Promise<EventVendor> {
-    // Check if event exists and allows vendors
+    // Check if event exists (no restriction on public access)
     const event = await this.eventRepository.findOne({
       where: { id: eventId }
     });
@@ -27,16 +27,14 @@ export class VendorService {
       throw new NotFoundException('Event not found');
     }
 
-    if (!event.allowVendors) {
-      throw new BadRequestException('This event does not allow vendors');
-    }
-
+    // Check if vendor application deadline has passed
     if (event.vendorApplicationDeadline && new Date() > event.vendorApplicationDeadline) {
       throw new BadRequestException('Vendor application deadline has passed');
     }
 
-    if ([EventStatus.COMPLETED, EventStatus.CANCELLED, EventStatus.ARCHIVED].includes(event.status)) {
-      throw new BadRequestException('Cannot apply to completed, cancelled, or archived events');
+    // Check if event is not cancelled or archived
+    if ([EventStatus.CANCELLED, EventStatus.ARCHIVED].includes(event.status)) {
+      throw new BadRequestException('Cannot apply to cancelled or archived events');
     }
 
     // Check if user already applied
@@ -164,6 +162,14 @@ export class VendorService {
 
     if (!vendor) {
       throw new NotFoundException('You are not an approved vendor for this event');
+    }
+
+    // 🚫 PAYMENT CHECK: Vendor must pay fee before linking products
+    if (vendor.vendorFee && vendor.vendorFee > 0 && !vendor.feePaid) {
+      throw new BadRequestException(
+        `You must pay the vendor fee of $${vendor.vendorFee} before linking products to this event. ` +
+        `Payment is due by ${vendor.paymentDueDate?.toLocaleDateString()}.`
+      );
     }
 
     // Check if product is already linked

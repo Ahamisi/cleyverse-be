@@ -5,7 +5,10 @@ import { FormSubmission } from './form-submission.entity';
 export declare enum FormType {
     BLANK = "blank",
     EMAIL_SIGNUP = "email_signup",
-    CONTACT_FORM = "contact_form"
+    CONTACT_FORM = "contact_form",
+    EVENT_REGISTRATION = "event_registration",
+    VENDOR_APPLICATION = "vendor_application",
+    GUEST_REGISTRATION = "guest_registration"
 }
 export declare enum FormStatus {
     ACTIVE = "active",
@@ -19,6 +22,12 @@ export declare class Form extends BaseEntity {
     type: FormType;
     introduction: string | null;
     thankYouMessage: string | null;
+    eventContext: {
+        eventId?: string;
+        formPurpose?: 'registration' | 'vendor' | 'guest';
+        eventTitle?: string;
+        eventSlug?: string;
+    } | null;
     customTerms: string | null;
     requireTermsAcceptance: boolean;
     collectEmailAddresses: boolean;

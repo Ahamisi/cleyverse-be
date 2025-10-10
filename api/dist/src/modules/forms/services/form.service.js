@@ -270,6 +270,44 @@ let FormService = class FormService extends base_service_1.BaseService {
         }));
         await this.formFieldRepository.save(fields);
     }
+    async linkToEvent(userId, formId, eventId, formPurpose, eventTitle, eventSlug) {
+        const form = await this.formRepository.findOne({
+            where: { id: formId, userId }
+        });
+        if (!form) {
+            throw new common_1.NotFoundException('Form not found or does not belong to user');
+        }
+        form.eventContext = {
+            eventId,
+            formPurpose,
+            eventTitle,
+            eventSlug
+        };
+        return this.formRepository.save(form);
+    }
+    async unlinkFromEvent(userId, formId) {
+        const form = await this.formRepository.findOne({
+            where: { id: formId, userId }
+        });
+        if (!form) {
+            throw new common_1.NotFoundException('Form not found or does not belong to user');
+        }
+        form.eventContext = null;
+        return this.formRepository.save(form);
+    }
+    async getEventLinkedForms(eventId) {
+        return this.formRepository.createQueryBuilder('form')
+            .where("form.eventContext->>'eventId' = :eventId", { eventId })
+            .leftJoinAndSelect('form.fields', 'fields')
+            .getMany();
+    }
+    async getFormsByPurpose(userId, formPurpose) {
+        return this.formRepository.createQueryBuilder('form')
+            .where('form.userId = :userId', { userId })
+            .andWhere("form.eventContext->>'formPurpose' = :formPurpose", { formPurpose })
+            .leftJoinAndSelect('form.fields', 'fields')
+            .getMany();
+    }
 };
 exports.FormService = FormService;
 exports.FormService = FormService = __decorate([

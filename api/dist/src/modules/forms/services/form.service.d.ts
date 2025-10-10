@@ -27,4 +27,8 @@ export declare class FormService extends BaseService<Form> {
     getFormSubmissions(userId: string, formId: string): Promise<FormSubmission[]>;
     getFormAnalytics(userId: string, formId?: string): Promise<any>;
     private createDefaultFields;
+    linkToEvent(userId: string, formId: string, eventId: string, formPurpose: 'registration' | 'vendor' | 'guest', eventTitle?: string, eventSlug?: string): Promise<Form>;
+    unlinkFromEvent(userId: string, formId: string): Promise<Form>;
+    getEventLinkedForms(eventId: string): Promise<Form[]>;
+    getFormsByPurpose(userId: string, formPurpose: 'registration' | 'vendor' | 'guest'): Promise<Form[]>;
 }

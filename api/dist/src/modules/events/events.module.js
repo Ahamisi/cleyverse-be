@@ -16,6 +16,7 @@ const event_vendor_entity_1 = require("./entities/event-vendor.entity");
 const event_product_entity_1 = require("./entities/event-product.entity");
 const event_registration_question_entity_1 = require("./entities/event-registration-question.entity");
 const user_event_interaction_entity_1 = require("./entities/user-event-interaction.entity");
+const event_booth_entity_1 = require("./entities/event-booth.entity");
 const event_service_1 = require("./services/event.service");
 const guest_service_1 = require("./services/guest.service");
 const vendor_service_1 = require("./services/vendor.service");
@@ -23,18 +24,26 @@ const host_service_1 = require("./services/host.service");
 const registration_question_service_1 = require("./services/registration-question.service");
 const event_recommendation_service_1 = require("./services/event-recommendation.service");
 const recurring_event_service_1 = require("./services/recurring-event.service");
+const event_form_service_1 = require("./services/event-form.service");
+const form_submission_handler_service_1 = require("./services/form-submission-handler.service");
+const booth_management_service_1 = require("./services/booth-management.service");
 const event_controller_1 = require("./controllers/event.controller");
 const guest_controller_1 = require("./controllers/guest.controller");
 const vendor_controller_1 = require("./controllers/vendor.controller");
 const host_controller_1 = require("./controllers/host.controller");
 const registration_question_controller_1 = require("./controllers/registration-question.controller");
 const event_explore_controller_1 = require("./controllers/event-explore.controller");
+const event_form_controller_1 = require("./controllers/event-form.controller");
+const form_submission_controller_1 = require("./controllers/form-submission.controller");
+const booth_management_controller_1 = require("./controllers/booth-management.controller");
+const forms_module_1 = require("../forms/forms.module");
 let EventsModule = class EventsModule {
 };
 exports.EventsModule = EventsModule;
 exports.EventsModule = EventsModule = __decorate([
     (0, common_1.Module)({
         imports: [
+            forms_module_1.FormsModule,
             typeorm_1.TypeOrmModule.forFeature([
                 event_entity_1.Event,
                 event_guest_entity_1.EventGuest,
@@ -44,7 +53,8 @@ exports.EventsModule = EventsModule = __decorate([
                 event_registration_question_entity_1.EventRegistrationQuestion,
                 event_registration_question_entity_1.EventGuestAnswer,
                 user_event_interaction_entity_1.UserEventInteraction,
-                user_event_interaction_entity_1.UserEventSubscription
+                user_event_interaction_entity_1.UserEventSubscription,
+                event_booth_entity_1.EventBooth
             ])
         ],
         controllers: [
@@ -57,7 +67,12 @@ exports.EventsModule = EventsModule = __decorate([
             host_controller_1.HostInvitationController,
             registration_question_controller_1.RegistrationQuestionController,
             event_explore_controller_1.EventExploreController,
-            event_explore_controller_1.RecurringEventController
+            event_explore_controller_1.RecurringEventController,
+            event_form_controller_1.EventFormController,
+            event_form_controller_1.PublicEventFormController,
+            form_submission_controller_1.FormSubmissionController,
+            form_submission_controller_1.FormsWebhookController,
+            booth_management_controller_1.BoothManagementController
         ],
         providers: [
             event_service_1.EventService,
@@ -66,7 +81,10 @@ exports.EventsModule = EventsModule = __decorate([
             host_service_1.HostService,
             registration_question_service_1.RegistrationQuestionService,
             event_recommendation_service_1.EventRecommendationService,
-            recurring_event_service_1.RecurringEventService
+            recurring_event_service_1.RecurringEventService,
+            event_form_service_1.EventFormService,
+            form_submission_handler_service_1.FormSubmissionHandlerService,
+            booth_management_service_1.BoothManagementService
         ],
         exports: [
             event_service_1.EventService,
@@ -75,7 +93,10 @@ exports.EventsModule = EventsModule = __decorate([
             host_service_1.HostService,
             registration_question_service_1.RegistrationQuestionService,
             event_recommendation_service_1.EventRecommendationService,
-            recurring_event_service_1.RecurringEventService
+            recurring_event_service_1.RecurringEventService,
+            event_form_service_1.EventFormService,
+            form_submission_handler_service_1.FormSubmissionHandlerService,
+            booth_management_service_1.BoothManagementService
         ]
     })
 ], EventsModule);

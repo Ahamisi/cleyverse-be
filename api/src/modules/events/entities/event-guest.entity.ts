@@ -131,6 +131,10 @@ export class EventGuest {
   @Column({ name: 'waitlisted_at', type: 'timestamp', nullable: true })
   waitlistedAt: Date | null;
 
+  // Forms Integration
+  @Column({ name: 'form_submission_id', type: 'uuid', nullable: true })
+  formSubmissionId: string | null;
+
   // Relations
   @OneToMany('EventGuestAnswer', 'guest')
   answers: any[];

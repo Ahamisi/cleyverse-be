@@ -34,6 +34,8 @@ export declare class CreateEventDto {
     allowVendors?: boolean;
     vendorApplicationDeadline?: string;
     vendorFee?: number;
+    vendorFormId?: string;
+    guestFormId?: string;
 }
 export declare class UpdateEventDto {
     title?: string;

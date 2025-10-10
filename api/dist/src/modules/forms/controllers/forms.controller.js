@@ -120,6 +120,18 @@ let FormsController = class FormsController {
         const submissions = await this.formService.getFormSubmissions(req.user.userId, id);
         return { message: 'Form submissions retrieved successfully', submissions, total: submissions.length };
     }
+    async linkToEvent(req, formId, eventId, body) {
+        const form = await this.formService.linkToEvent(req.user.userId, formId, eventId, body.formPurpose, body.eventTitle, body.eventSlug);
+        return { message: 'Form linked to event successfully', form };
+    }
+    async unlinkFromEvent(req, formId) {
+        const form = await this.formService.unlinkFromEvent(req.user.userId, formId);
+        return { message: 'Form unlinked from event successfully', form };
+    }
+    async getFormsByPurpose(req, purpose) {
+        const forms = await this.formService.getFormsByPurpose(req.user.userId, purpose);
+        return { message: `${purpose} forms retrieved successfully`, forms, total: forms.length };
+    }
     validateUUID(id, fieldName = 'ID') {
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
         if (!uuidRegex.test(id)) {
@@ -319,6 +331,35 @@ __decorate([
     __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], FormsController.prototype, "getSubmissions", null);
+__decorate([
+    (0, common_1.Post)(':id/link-to-event/:eventId'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Param)('eventId')),
+    __param(3, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String, Object]),
+    __metadata("design:returntype", Promise)
+], FormsController.prototype, "linkToEvent", null);
+__decorate([
+    (0, common_1.Delete)(':id/unlink-from-event'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], FormsController.prototype, "unlinkFromEvent", null);
+__decorate([
+    (0, common_1.Get)('by-purpose/:purpose'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('purpose')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:returntype", Promise)
+], FormsController.prototype, "getFormsByPurpose", null);
 exports.FormsController = FormsController = __decorate([
     (0, common_1.Controller)('forms'),
     __metadata("design:paramtypes", [form_service_1.FormService])

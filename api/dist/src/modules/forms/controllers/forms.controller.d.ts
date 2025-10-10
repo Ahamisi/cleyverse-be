@@ -78,6 +78,23 @@ export declare class FormsController {
         submissions: import("../entities/form-submission.entity").FormSubmission[];
         total: number;
     }>;
+    linkToEvent(req: any, formId: string, eventId: string, body: {
+        formPurpose: 'registration' | 'vendor' | 'guest';
+        eventTitle?: string;
+        eventSlug?: string;
+    }): Promise<{
+        message: string;
+        form: import("../entities/form.entity").Form;
+    }>;
+    unlinkFromEvent(req: any, formId: string): Promise<{
+        message: string;
+        form: import("../entities/form.entity").Form;
+    }>;
+    getFormsByPurpose(req: any, purpose: 'registration' | 'vendor' | 'guest'): Promise<{
+        message: string;
+        forms: import("../entities/form.entity").Form[];
+        total: number;
+    }>;
     private validateUUID;
     private formatTypeLabel;
     private getTypeDescription;

@@ -32,8 +32,8 @@ export class EventVendor {
   @Column({ name: 'event_id', type: 'uuid' })
   eventId: string;
 
-  @Column({ name: 'user_id', type: 'uuid' })
-  userId: string;
+  @Column({ name: 'user_id', type: 'uuid', nullable: true })
+  userId: string | null;
 
   @Column({ name: 'store_id', type: 'uuid', nullable: true })
   storeId: string | null; // Link to existing store
@@ -111,8 +111,20 @@ export class EventVendor {
   @Column({ name: 'payment_due_date', type: 'timestamp', nullable: true })
   paymentDueDate: Date | null;
 
+  @Column({ name: 'payment_id', type: 'varchar', length: 100, nullable: true })
+  paymentId: string | null; // Link to Payment Module
+
+  @Column({ name: 'payment_method', type: 'varchar', length: 50, nullable: true })
+  paymentMethod: string | null; // 'stripe', 'paypal', 'bank_transfer'
+
+  @Column({ name: 'paid_at', type: 'timestamp', nullable: true })
+  paidAt: Date | null;
+
   @Column({ name: 'commission_rate', type: 'decimal', precision: 5, scale: 2, nullable: true })
   commissionRate: number | null; // Percentage
+
+  @Column({ name: 'booth_id', type: 'uuid', nullable: true })
+  boothId: string | null; // Link to assigned booth
 
   // Contact Information
   @Column({ name: 'contact_name', type: 'varchar', length: 100 })
@@ -146,6 +158,10 @@ export class EventVendor {
 
   @Column({ name: 'booth_visits', type: 'int', default: 0 })
   boothVisits: number;
+
+  // Forms Integration
+  @Column({ name: 'form_submission_id', type: 'uuid', nullable: true })
+  formSubmissionId: string | null;
 
   // Settings
   @Column({ name: 'is_featured', type: 'boolean', default: false })

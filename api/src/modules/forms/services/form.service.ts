@@ -344,4 +344,52 @@ export class FormService extends BaseService<Form> {
 
     await this.formFieldRepository.save(fields);
   }
+
+  // Event Integration Methods
+  async linkToEvent(userId: string, formId: string, eventId: string, formPurpose: 'registration' | 'vendor' | 'guest', eventTitle?: string, eventSlug?: string): Promise<Form> {
+    const form = await this.formRepository.findOne({
+      where: { id: formId, userId }
+    });
+
+    if (!form) {
+      throw new NotFoundException('Form not found or does not belong to user');
+    }
+
+    form.eventContext = {
+      eventId,
+      formPurpose,
+      eventTitle,
+      eventSlug
+    };
+
+    return this.formRepository.save(form) as unknown as Form;
+  }
+
+  async unlinkFromEvent(userId: string, formId: string): Promise<Form> {
+    const form = await this.formRepository.findOne({
+      where: { id: formId, userId }
+    });
+
+    if (!form) {
+      throw new NotFoundException('Form not found or does not belong to user');
+    }
+
+    form.eventContext = null;
+    return this.formRepository.save(form) as unknown as Form;
+  }
+
+  async getEventLinkedForms(eventId: string): Promise<Form[]> {
+    return this.formRepository.createQueryBuilder('form')
+      .where("form.eventContext->>'eventId' = :eventId", { eventId })
+      .leftJoinAndSelect('form.fields', 'fields')
+      .getMany();
+  }
+
+  async getFormsByPurpose(userId: string, formPurpose: 'registration' | 'vendor' | 'guest'): Promise<Form[]> {
+    return this.formRepository.createQueryBuilder('form')
+      .where('form.userId = :userId', { userId })
+      .andWhere("form.eventContext->>'formPurpose' = :formPurpose", { formPurpose })
+      .leftJoinAndSelect('form.fields', 'fields')
+      .getMany();
+  }
 }
