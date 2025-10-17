@@ -89,9 +89,14 @@ let SocialLinkService = class SocialLinkService extends base_service_1.BaseServi
         }
         return this.getUserSocialLinks(userId, true);
     }
-    async incrementClickCount(socialLinkId) {
+    async trackClick(socialLinkId, trackClickDto) {
         await this.repository.increment({ id: socialLinkId }, 'clickCount', 1);
         await this.repository.update(socialLinkId, { lastClickedAt: new Date() });
+        const clickId = require('crypto').randomUUID();
+        return clickId;
+    }
+    async incrementClickCount(socialLinkId) {
+        await this.trackClick(socialLinkId, {});
     }
     async getSocialLinkByPlatform(userId, platform) {
         return this.socialLinkRepository.findOne({

@@ -12,46 +12,67 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AuthController = exports.LoginDto = void 0;
+exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
-const class_validator_1 = require("class-validator");
 const auth_service_1 = require("../services/auth.service");
-class LoginDto {
-    email;
-    password;
-}
-exports.LoginDto = LoginDto;
-__decorate([
-    (0, class_validator_1.IsEmail)(),
-    __metadata("design:type", String)
-], LoginDto.prototype, "email", void 0);
-__decorate([
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.MinLength)(6),
-    __metadata("design:type", String)
-], LoginDto.prototype, "password", void 0);
+const auth_dto_1 = require("../dto/auth.dto");
 let AuthController = class AuthController {
     authService;
     constructor(authService) {
         this.authService = authService;
     }
+    async checkUser(checkUserDto) {
+        return await this.authService.checkUser(checkUserDto.email, checkUserDto.deviceFingerprint);
+    }
     async login(loginDto) {
-        try {
-            return await this.authService.login(loginDto.email, loginDto.password);
-        }
-        catch (error) {
-            throw new common_1.BadRequestException('Invalid credentials');
-        }
+        return await this.authService.login(loginDto.email, loginDto.password, loginDto.deviceFingerprint);
+    }
+    async sendTempCode(sendTempCodeDto) {
+        return await this.authService.sendTempCode(sendTempCodeDto.email, sendTempCodeDto.reason);
+    }
+    async verifyTempCode(verifyTempCodeDto) {
+        return await this.authService.verifyTempCode(verifyTempCodeDto.email, verifyTempCodeDto.code, verifyTempCodeDto.deviceFingerprint);
+    }
+    async resendTempCode(resendTempCodeDto) {
+        return await this.authService.resendTempCode(resendTempCodeDto.email);
     }
 };
 exports.AuthController = AuthController;
 __decorate([
+    (0, common_1.Post)('check-user'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [auth_dto_1.CheckUserDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "checkUser", null);
+__decorate([
     (0, common_1.Post)('login'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [LoginDto]),
+    __metadata("design:paramtypes", [auth_dto_1.LoginDto]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
+__decorate([
+    (0, common_1.Post)('send-temp-code'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [auth_dto_1.SendTempCodeDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "sendTempCode", null);
+__decorate([
+    (0, common_1.Post)('verify-temp-code'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [auth_dto_1.VerifyTempCodeDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "verifyTempCode", null);
+__decorate([
+    (0, common_1.Post)('resend-temp-code'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [auth_dto_1.ResendTempCodeDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "resendTempCode", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('auth'),
     __metadata("design:paramtypes", [auth_service_1.AuthService])

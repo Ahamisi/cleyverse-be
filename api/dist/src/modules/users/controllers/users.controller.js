@@ -42,6 +42,9 @@ let UsersController = class UsersController {
     async getGoals() {
         return { goals: this.userService.getGoals() };
     }
+    async getPublicProfile(username) {
+        return this.userService.getPublicProfile(username);
+    }
     async updatePersonalInfo(req, personalInfo) {
         const user = await this.userService.updatePersonalInfo(req.user.userId, personalInfo);
         return {
@@ -77,6 +80,30 @@ let UsersController = class UsersController {
     }
     async getProfile(req) {
         return this.userService.getOnboardingStatus(req.user.userId);
+    }
+    async setupPassword(req, setupPasswordDto) {
+        const user = await this.userService.setupPassword(req.user.userId, setupPasswordDto.password);
+        const { password, ...userWithoutPassword } = user;
+        return {
+            message: 'Password set up successfully',
+            user: userWithoutPassword
+        };
+    }
+    async verifyEmailAndSetupPassword(verifyAndSetupDto) {
+        const user = await this.userService.verifyEmailAndSetupPassword(verifyAndSetupDto.token, verifyAndSetupDto.password);
+        const { password, ...userWithoutPassword } = user;
+        return {
+            message: 'Email verified and password set up successfully',
+            user: userWithoutPassword
+        };
+    }
+    async updatePassword(req, updatePasswordDto) {
+        const user = await this.userService.updatePassword(req.user.userId, updatePasswordDto.currentPassword, updatePasswordDto.newPassword);
+        const { password, ...userWithoutPassword } = user;
+        return {
+            message: 'Password updated successfully',
+            user: userWithoutPassword
+        };
     }
 };
 exports.UsersController = UsersController;
@@ -120,6 +147,13 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "getGoals", null);
+__decorate([
+    (0, common_1.Get)('public/:username'),
+    __param(0, (0, common_1.Param)('username')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "getPublicProfile", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Put)('personal-info'),
@@ -181,6 +215,31 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "getProfile", null);
+__decorate([
+    (0, common_1.Post)('setup-password'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, create_user_dto_1.SetupPasswordDto]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "setupPassword", null);
+__decorate([
+    (0, common_1.Post)('verify-and-setup-password'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [create_user_dto_1.VerifyEmailAndSetupPasswordDto]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "verifyEmailAndSetupPassword", null);
+__decorate([
+    (0, common_1.Put)('update-password'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, create_user_dto_1.UpdatePasswordDto]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "updatePassword", null);
 exports.UsersController = UsersController = __decorate([
     (0, common_1.Controller)('users'),
     __metadata("design:paramtypes", [services_1.UserService,

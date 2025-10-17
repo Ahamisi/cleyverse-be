@@ -1,10 +1,14 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BaseService } from '../../../common/base/base.service';
 import { User, UserCategory, UserGoal } from '../entities/user.entity';
 import { EmailVerification } from '../entities/email-verification.entity';
+import { EmailVerificationService } from './email-verification.service';
 import { EmailService } from '../../../shared/services/email.service';
+import { Link } from '../../links/entities/link.entity';
+import { SocialLink } from '../../links/entities/social-link.entity';
+import { Collection } from '../../collections/entities/collection.entity';
 import * as bcrypt from 'bcrypt';
 import { 
   CreateUserDto, 
@@ -23,7 +27,14 @@ export class UserService extends BaseService<User> {
     private readonly userRepository: Repository<User>,
     @InjectRepository(EmailVerification)
     private readonly emailVerificationRepository: Repository<EmailVerification>,
+    @InjectRepository(Link)
+    private readonly linkRepository: Repository<Link>,
+    @InjectRepository(SocialLink)
+    private readonly socialLinkRepository: Repository<SocialLink>,
+    @InjectRepository(Collection)
+    private readonly collectionRepository: Repository<Collection>,
     private readonly emailService: EmailService,
+    private readonly emailVerificationService: EmailVerificationService,
   ) {
     super(userRepository);
   }
@@ -33,22 +44,64 @@ export class UserService extends BaseService<User> {
   }
 
   async register(createUserDto: CreateUserDto) {
-    // Check if email or username already exists
-    const existingUser = await this.userRepository.findOne({
-      where: [{ email: createUserDto.email }, { username: createUserDto.username }]
-    });
+    const { email, username, password } = createUserDto;
 
-    if (existingUser) {
-      throw new BadRequestException('Email or username already exists');
+    // Validate required fields
+    if (!email) {
+      throw new BadRequestException('Email is required');
+    }
+    
+    if (!username) {
+      throw new BadRequestException('Username is required');
     }
 
-    // Hash password and create user
-    const hashedPassword = await this.hashPassword(createUserDto.password);
-    const user = await this.create({
-      ...createUserDto,
-      password: hashedPassword,
-      isEmailVerified: false
+    // Check if email or username already exists
+    const existingUserByEmail = await this.userRepository.findOne({
+      where: { email }
     });
+
+    if (existingUserByEmail) {
+      if (existingUserByEmail.password) {
+        throw new BadRequestException(
+          'An account with this email already exists. Please login to continue.'
+        );
+      } else {
+        throw new BadRequestException(
+          'An account with this email already exists. Please check your email to verify your account and set up your password.'
+        );
+      }
+    }
+
+    const existingUserByUsername = await this.userRepository.findOne({
+      where: { username }
+    });
+
+    if (existingUserByUsername) {
+      throw new BadRequestException(
+        'This username is already taken. Please choose a different username.'
+      );
+    }
+
+    // Create user with or without password
+    let userData: any = {
+      email,
+      username,
+      isEmailVerified: false,
+      // User provided username during registration, so they're past step 2
+      // Step 1: Email provided ✓
+      // Step 2: Username provided ✓
+      // Ready for Step 3: Personal Info
+      onboardingStep: 2
+    };
+
+    // Only hash password if provided
+    if (password) {
+      userData.password = await this.hashPassword(password);
+    } else {
+      userData.password = null; // Allow null password for passwordless registration
+    }
+
+    const user = await this.create(userData);
 
     // Generate verification token
     await this.createEmailVerification(user.id);
@@ -131,14 +184,13 @@ export class UserService extends BaseService<User> {
   async completeOnboarding(userId: string, finalData: CompleteOnboardingDto) {
     const user = await this.findById(userId);
 
-    if (!user.isEmailVerified) {
-      throw new BadRequestException('Please verify your email before completing onboarding');
-    }
+    // Allow onboarding completion without email verification
+    // Users can verify email anytime after onboarding
 
     const updatedUser = await this.update(userId, {
       ...finalData,
       hasCompletedOnboarding: true,
-      onboardingStep: 6
+      onboardingStep: 4 // Step 4 is the final step (matches frontend "4 of 4")
     });
 
     return this.excludeFields(updatedUser, ['password']);
@@ -148,12 +200,15 @@ export class UserService extends BaseService<User> {
     const user = await this.findById(userId);
     const userResult = this.excludeFields(user, ['password']);
     
+    // Calculate smart onboarding step based on actual data
+    const smartOnboardingStep = this.calculateOnboardingStep(user);
+    
     return {
       user: userResult,
-      onboardingStep: user.onboardingStep,
+      onboardingStep: smartOnboardingStep,
       hasCompletedOnboarding: user.hasCompletedOnboarding,
       isEmailVerified: user.isEmailVerified,
-      nextSteps: this.getNextSteps(user.onboardingStep, user.isEmailVerified)
+      nextSteps: this.getNextSteps(user, user.isEmailVerified)
     };
   }
 
@@ -206,22 +261,244 @@ export class UserService extends BaseService<User> {
     await this.emailService.sendVerificationEmail(user.email, token);
   }
 
-  private getNextSteps(currentStep: number, isEmailVerified: boolean): string[] {
+  /**
+   * Calculate smart onboarding step based on actual user data
+   * Matches frontend flow: 4 steps total (frontend shows 4/4 on final step)
+   */
+  private calculateOnboardingStep(user: User): number {
+    let step = 1;
+    
+    // Step 1: Email + Username (Registration) - Always completed if user exists
+    step = 1;
+    
+    // Step 2: Personal info completed (firstName, lastName)
+    if (user.firstName && user.lastName) {
+      step = 2;
+    }
+    
+    // Step 3: Category selected
+    if (user.category) {
+      step = 3;
+    }
+    
+    // Step 4: Goal selected
+    if (user.goal) {
+      step = 4;
+    }
+    
+    // Profile completion (profileTitle, bio, profileImage) is part of step 4
+    // Frontend shows "Step 4 of 4" on profile details page
+    
+    return step;
+  }
+
+  /**
+   * Get next steps based on actual user data
+   * Matches frontend flow: 4 steps total
+   * Email verification is optional and can be done anytime
+   */
+  private getNextSteps(user: User, isEmailVerified: boolean): string[] {
     const steps: string[] = [];
     
-    if (!isEmailVerified) steps.push('verify-email');
-    if (currentStep < 2) steps.push('personal-info');
-    if (currentStep < 3) steps.push('username');
-    if (currentStep < 4) steps.push('goal');
-    if (currentStep < 5) steps.push('platforms');
-    if (currentStep < 6) steps.push('profile');
+    // Email verification is optional - users can verify anytime
+    if (!isEmailVerified) {
+      steps.push('verify-email');
+    }
+    
+    // Step 2: Personal info (firstName, lastName)
+    if (!user.firstName || !user.lastName) {
+      steps.push('personal-info');
+    }
+    
+    // Step 3: Category selection
+    if (!user.category) {
+      steps.push('category');
+    }
+    
+    // Step 4: Goal selection + Profile completion
+    if (!user.goal) {
+      steps.push('goal');
+    }
+    
+    // Profile completion (profileTitle, bio, profileImage) is part of step 4
+    if (!user.profileTitle || !user.bio || (!user.profileImageUrl && !user.profileImageGradient)) {
+      steps.push('profile');
+    }
     
     return steps;
   }
 
+  async setupPassword(userId: string, password: string): Promise<User> {
+    const user = await this.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.password) {
+      throw new BadRequestException('Password already set for this user. Use the update password endpoint instead.');
+    }
+
+    const hashedPassword = await this.hashPassword(password);
+    await this.userRepository.update(userId, { password: hashedPassword });
+
+    return this.findById(userId);
+  }
+
+  async updatePassword(userId: string, currentPassword: string, newPassword: string): Promise<User> {
+    const user = await this.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.password) {
+      throw new BadRequestException('Please set up your password first');
+    }
+
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isPasswordValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    // Check that new password is different from current
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      throw new BadRequestException('New password must be different from current password');
+    }
+
+    const hashedPassword = await this.hashPassword(newPassword);
+    await this.userRepository.update(userId, { password: hashedPassword });
+
+    return this.findById(userId);
+  }
+
+  async verifyEmailAndSetupPassword(token: string, password: string): Promise<User> {
+    if (!token) {
+      throw new BadRequestException('Verification token is required');
+    }
+
+    // Find verification record
+    const verification = await this.emailVerificationRepository.findOne({
+      where: { token, isUsed: false },
+      relations: ['user']
+    });
+
+    if (!verification) {
+      throw new BadRequestException('Invalid or expired verification token');
+    }
+
+    // Update user email verification status
+    await this.userRepository.update(verification.userId, {
+      isEmailVerified: true,
+      emailVerifiedAt: new Date()
+    });
+
+    // Mark verification as used
+    await this.emailVerificationRepository.update(verification.id, {
+      isUsed: true
+    });
+
+    // Setup password
+    return this.setupPassword(verification.userId, password);
+  }
+
   private async hashPassword(password: string): Promise<string> {
+    if (!password) {
+      throw new BadRequestException('Password is required');
+    }
+    
+    if (typeof password !== 'string') {
+      throw new BadRequestException('Password must be a string');
+    }
+    
     const saltRounds = 10;
     return bcrypt.hash(password, saltRounds);
+  }
+
+  async getPublicProfile(username: string) {
+    try {
+      const user = await this.userRepository.findOne({
+        where: { username },
+        select: [
+          'id', 'username', 'firstName', 'lastName', 'profileTitle', 'bio',
+          'profileImageUrl', 'profileImageGradient', 'category', 'goal', 'createdAt'
+        ]
+      });
+
+      if (!user) {
+        // Return empty data structure for SSR compatibility instead of 404
+        return {
+          message: 'User not found',
+          user: null,
+          links: [],
+          socialLinks: [],
+          collections: [],
+          exists: false
+        };
+      }
+
+      // Get user's links
+      const links = await this.linkRepository.find({
+        where: { userId: user.id, isActive: true },
+        order: { displayOrder: 'ASC' },
+        select: [
+          'id', 'title', 'url', 'type', 'layout', 'isActive', 'displayOrder',
+          'clickCount', 'createdAt'
+        ]
+      });
+
+      // Get user's social links
+      const socialLinks = await this.socialLinkRepository.find({
+        where: { userId: user.id, isActive: true },
+        order: { displayOrder: 'ASC' },
+        select: [
+          'id', 'platform', 'url', 'username', 'isActive', 'displayOrder',
+          'clickCount', 'createdAt'
+        ]
+      });
+
+      // Get user's collections
+      const collections = await this.collectionRepository.find({
+        where: { userId: user.id, isActive: true },
+        order: { displayOrder: 'ASC' },
+        select: [
+          'id', 'title', 'description', 'layout', 'isActive', 'displayOrder',
+          'linkCount', 'createdAt'
+        ]
+      });
+
+      // Get links for each collection
+      for (const collection of collections) {
+        const collectionLinks = await this.linkRepository
+          .createQueryBuilder('link')
+          .leftJoin('link.collections', 'collection')
+          .where('collection.id = :collectionId', { collectionId: collection.id })
+          .andWhere('link.isActive = :isActive', { isActive: true })
+          .orderBy('link.displayOrder', 'ASC')
+          .select([
+            'link.id', 'link.title', 'link.url', 'link.type'
+          ])
+          .getMany();
+        
+        (collection as any).links = collectionLinks;
+      }
+
+      return {
+        message: 'User profile retrieved successfully',
+        user: {
+          ...user,
+          category: user.category ? this.formatCategoryLabel(user.category) : null,
+          goal: user.goal ? this.formatGoalLabel(user.goal) : null
+        },
+        links,
+        socialLinks,
+        collections,
+        exists: true
+      };
+    } catch (error) {
+      console.error('Error in getPublicProfile:', error);
+      throw error;
+    }
   }
 
   private formatCategoryLabel(category: UserCategory): string {
@@ -241,6 +518,16 @@ export class UserService extends BaseService<User> {
     };
     
     return labels[category] || category;
+  }
+
+  private formatGoalLabel(goal: UserGoal): string {
+    const labels = {
+      [UserGoal.CREATOR]: 'Creator',
+      [UserGoal.BUSINESS]: 'Business',
+      [UserGoal.PERSONAL]: 'Personal'
+    };
+    
+    return labels[goal] || goal;
   }
 
 }

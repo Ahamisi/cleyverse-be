@@ -16,15 +16,36 @@ exports.StoreController = void 0;
 const common_1 = require("@nestjs/common");
 const jwt_auth_guard_1 = require("../../../common/guards/jwt-auth.guard");
 const store_service_1 = require("../services/store.service");
+const store_onboarding_service_1 = require("../services/store-onboarding.service");
 const store_dto_1 = require("../dto/store.dto");
+const link_dto_1 = require("../../links/dto/link.dto");
 let StoreController = class StoreController {
     storeService;
-    constructor(storeService) {
+    onboardingService;
+    constructor(storeService, onboardingService) {
         this.storeService = storeService;
+        this.onboardingService = onboardingService;
     }
     async create(req, createStoreDto) {
+        let onboardingData = null;
+        try {
+            const onboardingStatus = await this.onboardingService.getOnboardingStatus(req.user.userId);
+            if (onboardingStatus.isCompleted) {
+                onboardingData = {
+                    businessType: onboardingStatus.businessType,
+                    salesChannels: onboardingStatus.salesChannels,
+                    productTypes: onboardingStatus.productTypes
+                };
+            }
+        }
+        catch (error) {
+        }
         const store = await this.storeService.createStore(req.user.userId, createStoreDto);
-        return { message: 'Store created successfully', store };
+        return {
+            message: 'Store created successfully',
+            store,
+            onboardingData
+        };
     }
     async findAll(req, includeInactive = 'false') {
         const stores = await this.storeService.getUserStores(req.user.userId, includeInactive === 'true');
@@ -57,6 +78,24 @@ let StoreController = class StoreController {
         const analytics = await this.storeService.getStoreAnalytics(req.user.userId, storeId);
         return { message: 'Store analytics retrieved successfully', analytics };
     }
+    async getOnboardingStatus(req) {
+        try {
+            const status = await this.onboardingService.getOnboardingStatus(req.user.userId);
+            return {
+                message: 'Onboarding status retrieved successfully',
+                onboarding: status,
+                hasOnboarding: true
+            };
+        }
+        catch (error) {
+            return {
+                message: 'No onboarding session found',
+                onboarding: null,
+                hasOnboarding: false,
+                canStartOnboarding: true
+            };
+        }
+    }
     async checkUrlAvailability(storeUrl) {
         const isAvailable = await this.storeService.checkStoreUrlAvailability(storeUrl);
         return {
@@ -65,10 +104,6 @@ let StoreController = class StoreController {
             isAvailable,
             suggestion: isAvailable ? null : `${storeUrl}-${Date.now().toString().slice(-4)}`
         };
-    }
-    async getPublicStore(storeUrl) {
-        const store = await this.storeService.getPublicStore(storeUrl);
-        return { message: 'Public store retrieved successfully', store };
     }
     async findOne(req, id) {
         const store = await this.storeService.getStoreById(req.user.userId, id);
@@ -101,6 +136,31 @@ let StoreController = class StoreController {
     async unsuspendStore(id) {
         const store = await this.storeService.unsuspendStore(id);
         return { message: 'Store unsuspended successfully', store };
+    }
+    async getPublicStore(storeUrl) {
+        return this.storeService.getPublicStore(storeUrl);
+    }
+    async getPublicStoreProducts(storeUrl, page, limit, search, category, minPrice, maxPrice, sortBy, sortOrder) {
+        return this.storeService.getPublicStoreProducts(storeUrl, {
+            page: page || 1,
+            limit: limit || 20,
+            search,
+            category,
+            minPrice,
+            maxPrice,
+            sortBy: sortBy || 'createdAt',
+            sortOrder: sortOrder || 'DESC'
+        });
+    }
+    async getPublicProduct(storeUrl, productHandle) {
+        return this.storeService.getPublicProduct(storeUrl, productHandle);
+    }
+    async trackProductView(storeUrl, productHandle, trackClickDto) {
+        const viewId = await this.storeService.trackProductView(storeUrl, productHandle, trackClickDto);
+        return {
+            message: 'View recorded successfully',
+            viewId
+        };
     }
 };
 exports.StoreController = StoreController;
@@ -140,19 +200,20 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], StoreController.prototype, "getAnalytics", null);
 __decorate([
+    (0, common_1.Get)('onboarding/status'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], StoreController.prototype, "getOnboardingStatus", null);
+__decorate([
     (0, common_1.Get)('check-url/:storeUrl'),
     __param(0, (0, common_1.Param)('storeUrl')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], StoreController.prototype, "checkUrlAvailability", null);
-__decorate([
-    (0, common_1.Get)('public/:storeUrl'),
-    __param(0, (0, common_1.Param)('storeUrl')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
-], StoreController.prototype, "getPublicStore", null);
 __decorate([
     (0, common_1.Get)(':id'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
@@ -225,8 +286,48 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], StoreController.prototype, "unsuspendStore", null);
+__decorate([
+    (0, common_1.Get)('public/:storeUrl'),
+    __param(0, (0, common_1.Param)('storeUrl')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], StoreController.prototype, "getPublicStore", null);
+__decorate([
+    (0, common_1.Get)('public/:storeUrl/products'),
+    __param(0, (0, common_1.Param)('storeUrl')),
+    __param(1, (0, common_1.Query)('page')),
+    __param(2, (0, common_1.Query)('limit')),
+    __param(3, (0, common_1.Query)('search')),
+    __param(4, (0, common_1.Query)('category')),
+    __param(5, (0, common_1.Query)('minPrice')),
+    __param(6, (0, common_1.Query)('maxPrice')),
+    __param(7, (0, common_1.Query)('sortBy')),
+    __param(8, (0, common_1.Query)('sortOrder')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Number, Number, String, String, Number, Number, String, String]),
+    __metadata("design:returntype", Promise)
+], StoreController.prototype, "getPublicStoreProducts", null);
+__decorate([
+    (0, common_1.Get)('public/:storeUrl/products/:productHandle'),
+    __param(0, (0, common_1.Param)('storeUrl')),
+    __param(1, (0, common_1.Param)('productHandle')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], StoreController.prototype, "getPublicProduct", null);
+__decorate([
+    (0, common_1.Post)('public/:storeUrl/products/:productHandle/view'),
+    __param(0, (0, common_1.Param)('storeUrl')),
+    __param(1, (0, common_1.Param)('productHandle')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, link_dto_1.TrackClickDto]),
+    __metadata("design:returntype", Promise)
+], StoreController.prototype, "trackProductView", null);
 exports.StoreController = StoreController = __decorate([
     (0, common_1.Controller)('stores'),
-    __metadata("design:paramtypes", [store_service_1.StoreService])
+    __metadata("design:paramtypes", [store_service_1.StoreService,
+        store_onboarding_service_1.StoreOnboardingService])
 ], StoreController);
 //# sourceMappingURL=store.controller.js.map

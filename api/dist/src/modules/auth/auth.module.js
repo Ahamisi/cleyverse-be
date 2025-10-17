@@ -12,21 +12,25 @@ const typeorm_1 = require("@nestjs/typeorm");
 const jwt_1 = require("@nestjs/jwt");
 const passport_1 = require("@nestjs/passport");
 const user_entity_1 = require("../users/entities/user.entity");
+const temp_code_entity_1 = require("./entities/temp-code.entity");
+const trusted_device_entity_1 = require("./entities/trusted-device.entity");
 const auth_service_1 = require("./services/auth.service");
 const auth_controller_1 = require("./controllers/auth.controller");
 const jwt_strategy_1 = require("./strategies/jwt.strategy");
+const shared_module_1 = require("../../shared/shared.module");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
 exports.AuthModule = AuthModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([user_entity_1.User]),
+            typeorm_1.TypeOrmModule.forFeature([user_entity_1.User, temp_code_entity_1.TempCode, trusted_device_entity_1.TrustedDevice]),
             passport_1.PassportModule,
             jwt_1.JwtModule.register({
                 secret: process.env.JWT_SECRET || 'cleyverse-super-secret-jwt-key-2025',
-                signOptions: { expiresIn: '24h' },
+                signOptions: { expiresIn: '7d' },
             }),
+            shared_module_1.SharedModule,
         ],
         controllers: [auth_controller_1.AuthController],
         providers: [auth_service_1.AuthService, jwt_strategy_1.JwtStrategy],

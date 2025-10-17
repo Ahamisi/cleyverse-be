@@ -1,6 +1,21 @@
-import { IsString, IsEnum, IsOptional, IsUrl, IsBoolean, IsInt, Min, MaxLength, IsDateString, IsObject, IsUUID } from 'class-validator';
+import { IsString, IsEnum, IsOptional, IsUrl, IsBoolean, IsInt, Min, MaxLength, IsDateString, IsObject, IsUUID, IsArray } from 'class-validator';
 import { LinkType, LinkLayout, LinkStatus, LinkLockType, MediaType } from '../entities/link.entity';
 import { SocialPlatform, SocialIconPosition } from '../entities/social-link.entity';
+
+// Click Tracking DTOs
+export class TrackClickDto {
+  @IsString()
+  @IsOptional()
+  userAgent?: string;
+
+  @IsString()
+  @IsOptional()
+  ipAddress?: string;
+
+  @IsString()
+  @IsOptional()
+  referrer?: string;
+}
 
 export class CreateLinkDto {
   @IsString()
@@ -123,6 +138,7 @@ export class UpdateSocialLinkDto {
 }
 
 export class ReorderLinksDto {
+  @IsArray()
   @IsString({ each: true })
   linkIds: string[];
 }

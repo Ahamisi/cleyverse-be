@@ -44,6 +44,7 @@ let User = class User extends base_entity_1.BaseEntity {
     profileTitle;
     bio;
     profileImageUrl;
+    profileImageGradient;
     hasCompletedOnboarding;
     onboardingStep;
     isEmailVerified;
@@ -68,7 +69,7 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "username", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ type: 'varchar', nullable: true }),
     __metadata("design:type", String)
 ], User.prototype, "password", void 0);
 __decorate([
@@ -107,6 +108,10 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'profile_image_url', nullable: true }),
     __metadata("design:type", String)
 ], User.prototype, "profileImageUrl", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ name: 'profile_image_gradient', nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "profileImageGradient", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'has_completed_onboarding', default: false }),
     __metadata("design:type", Boolean)

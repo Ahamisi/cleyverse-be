@@ -9,10 +9,31 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ShareLinkDto = exports.ArchiveLinkDto = exports.CustomizeLinkDto = exports.UpdateMediaDto = exports.UnlockLinkDto = exports.LockLinkDto = exports.ScheduleLinkDto = exports.UpdateSocialIconSettingsDto = exports.ReorderLinksDto = exports.UpdateSocialLinkDto = exports.CreateSocialLinkDto = exports.UpdateLinkDto = exports.CreateLinkDto = void 0;
+exports.ShareLinkDto = exports.ArchiveLinkDto = exports.CustomizeLinkDto = exports.UpdateMediaDto = exports.UnlockLinkDto = exports.LockLinkDto = exports.ScheduleLinkDto = exports.UpdateSocialIconSettingsDto = exports.ReorderLinksDto = exports.UpdateSocialLinkDto = exports.CreateSocialLinkDto = exports.UpdateLinkDto = exports.CreateLinkDto = exports.TrackClickDto = void 0;
 const class_validator_1 = require("class-validator");
 const link_entity_1 = require("../entities/link.entity");
 const social_link_entity_1 = require("../entities/social-link.entity");
+class TrackClickDto {
+    userAgent;
+    ipAddress;
+    referrer;
+}
+exports.TrackClickDto = TrackClickDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], TrackClickDto.prototype, "userAgent", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], TrackClickDto.prototype, "ipAddress", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], TrackClickDto.prototype, "referrer", void 0);
 class CreateLinkDto {
     title;
     url;
@@ -195,6 +216,7 @@ class ReorderLinksDto {
 }
 exports.ReorderLinksDto = ReorderLinksDto;
 __decorate([
+    (0, class_validator_1.IsArray)(),
     (0, class_validator_1.IsString)({ each: true }),
     __metadata("design:type", Array)
 ], ReorderLinksDto.prototype, "linkIds", void 0);

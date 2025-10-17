@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CheckUsernameDto = exports.CompleteOnboardingDto = exports.UpdateProfileDto = exports.UpdateGoalDto = exports.UpdateUsernameDto = exports.UpdatePersonalInfoDto = exports.CreateUserDto = void 0;
+exports.UpdatePasswordDto = exports.VerifyEmailAndSetupPasswordDto = exports.SetupPasswordDto = exports.CheckUsernameDto = exports.CompleteOnboardingDto = exports.UpdateProfileDto = exports.UpdateGoalDto = exports.UpdateUsernameDto = exports.UpdatePersonalInfoDto = exports.CreateUserDto = void 0;
 const class_validator_1 = require("class-validator");
 const user_entity_1 = require("../entities/user.entity");
 class CreateUserDto {
@@ -29,6 +29,7 @@ __decorate([
     __metadata("design:type", String)
 ], CreateUserDto.prototype, "username", void 0);
 __decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.MinLength)(6),
     __metadata("design:type", String)
@@ -80,6 +81,7 @@ class UpdateProfileDto {
     profileTitle;
     bio;
     profileImageUrl;
+    profileImageGradient;
 }
 exports.UpdateProfileDto = UpdateProfileDto;
 __decorate([
@@ -99,10 +101,16 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], UpdateProfileDto.prototype, "profileImageUrl", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], UpdateProfileDto.prototype, "profileImageGradient", void 0);
 class CompleteOnboardingDto {
     profileTitle;
     bio;
     profileImageUrl;
+    profileImageGradient;
 }
 exports.CompleteOnboardingDto = CompleteOnboardingDto;
 __decorate([
@@ -122,6 +130,11 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CompleteOnboardingDto.prototype, "profileImageUrl", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CompleteOnboardingDto.prototype, "profileImageGradient", void 0);
 class CheckUsernameDto {
     username;
 }
@@ -132,4 +145,42 @@ __decorate([
     (0, class_validator_1.MaxLength)(30),
     __metadata("design:type", String)
 ], CheckUsernameDto.prototype, "username", void 0);
+class SetupPasswordDto {
+    password;
+}
+exports.SetupPasswordDto = SetupPasswordDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(6),
+    __metadata("design:type", String)
+], SetupPasswordDto.prototype, "password", void 0);
+class VerifyEmailAndSetupPasswordDto {
+    token;
+    password;
+}
+exports.VerifyEmailAndSetupPasswordDto = VerifyEmailAndSetupPasswordDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], VerifyEmailAndSetupPasswordDto.prototype, "token", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(6),
+    __metadata("design:type", String)
+], VerifyEmailAndSetupPasswordDto.prototype, "password", void 0);
+class UpdatePasswordDto {
+    currentPassword;
+    newPassword;
+}
+exports.UpdatePasswordDto = UpdatePasswordDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(6),
+    __metadata("design:type", String)
+], UpdatePasswordDto.prototype, "currentPassword", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(6),
+    __metadata("design:type", String)
+], UpdatePasswordDto.prototype, "newPassword", void 0);
 //# sourceMappingURL=create-user.dto.js.map

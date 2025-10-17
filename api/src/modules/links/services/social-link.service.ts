@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BaseService } from '../../../common/base/base.service';
 import { SocialLink, SocialPlatform, SocialIconPosition } from '../entities/social-link.entity';
-import { CreateSocialLinkDto, UpdateSocialLinkDto, UpdateSocialIconSettingsDto } from '../dto/link.dto';
+import { CreateSocialLinkDto, UpdateSocialLinkDto, UpdateSocialIconSettingsDto, TrackClickDto } from '../dto/link.dto';
 
 @Injectable()
 export class SocialLinkService extends BaseService<SocialLink> {
@@ -116,9 +116,23 @@ export class SocialLinkService extends BaseService<SocialLink> {
     return this.getUserSocialLinks(userId, true);
   }
 
-  async incrementClickCount(socialLinkId: string): Promise<void> {
+  async trackClick(socialLinkId: string, trackClickDto: TrackClickDto): Promise<string> {
+    // Increment click count
     await this.repository.increment({ id: socialLinkId }, 'clickCount', 1);
     await this.repository.update(socialLinkId, { lastClickedAt: new Date() });
+    
+    // Generate a click ID for tracking
+    const clickId = require('crypto').randomUUID();
+    
+    // TODO: Store detailed click analytics in a separate table
+    // For now, we just return the click ID
+    
+    return clickId;
+  }
+
+  async incrementClickCount(socialLinkId: string): Promise<void> {
+    // Keep this method for backward compatibility
+    await this.trackClick(socialLinkId, {});
   }
 
   async getSocialLinkByPlatform(userId: string, platform: SocialPlatform): Promise<SocialLink | null> {

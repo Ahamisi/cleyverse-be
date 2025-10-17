@@ -20,6 +20,7 @@ export enum ProductType {
 @Index(['storeId', 'status'])
 @Index(['storeId', 'createdAt'])
 @Index(['title'])
+@Index(['storeId', 'handle'], { unique: true })
 export class Product extends BaseEntity {
   @Column({ name: 'store_id', type: 'uuid' })
   storeId: string;
@@ -40,7 +41,7 @@ export class Product extends BaseEntity {
   @Column({ type: 'text', nullable: true })
   description: string | null;
 
-  @Column({ type: 'varchar', length: 200, unique: true })
+  @Column({ type: 'varchar', length: 200 })
   handle: string; // URL-friendly version of title
 
   @Column({ type: 'enum', enum: ProductType, default: ProductType.PHYSICAL })

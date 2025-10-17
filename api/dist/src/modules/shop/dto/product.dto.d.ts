@@ -12,6 +12,8 @@ export declare class CreateProductVariantDto {
     price: number;
     compareAtPrice?: number;
     costPerItem?: number;
+    isActive?: boolean;
+    displayOrder?: number;
     inventoryQuantity?: number;
     option1Name?: string;
     option1Value?: string;
@@ -22,10 +24,15 @@ export declare class CreateProductVariantDto {
     weight?: number;
     weightUnit?: string;
 }
+export declare class VariantOptionDto {
+    name: string;
+    values: string[];
+}
 export declare class CreateProductDto {
     title: string;
     description?: string;
     type?: ProductType;
+    status?: string;
     price?: number;
     compareAtPrice?: number;
     costPerItem?: number;
@@ -43,6 +50,7 @@ export declare class CreateProductDto {
     tags?: string[];
     images?: CreateProductImageDto[];
     variants?: CreateProductVariantDto[];
+    variantOptions?: VariantOptionDto[];
 }
 export declare class UpdateProductDto {
     title?: string;

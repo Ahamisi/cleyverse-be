@@ -18,6 +18,33 @@ let EmailService = EmailService_1 = class EmailService {
     async sendWelcomeEmail(to, username) {
         this.logger.log(`Sending welcome email to ${to}. Welcome, ${username}!`);
     }
+    async sendTempCodeEmail(to, username, code, reason) {
+        const reasonMessages = {
+            new_device: 'logging in from a new device',
+            forgot_password: 'resetting your password',
+            onboarding: 'completing your registration'
+        };
+        const reasonMessage = reasonMessages[reason] || 'logging in';
+        this.logger.log(`
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      📧 TEMPORARY LOGIN CODE EMAIL
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      To: ${to}
+      Username: ${username}
+      Reason: ${reasonMessage}
+      
+      Your temporary login code is:
+      
+      ╔═══════════════╗
+      ║   ${code}   ║
+      ╚═══════════════╝
+      
+      This code will expire in 15 minutes.
+      
+      If you didn't request this code, please ignore this email.
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    `);
+    }
 };
 exports.EmailService = EmailService;
 exports.EmailService = EmailService = EmailService_1 = __decorate([

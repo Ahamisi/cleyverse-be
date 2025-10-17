@@ -30,7 +30,7 @@ export class User extends BaseEntity {
   @Column({ unique: true })
   username: string;
 
-  @Column()
+  @Column({ type: 'varchar', nullable: true })
   password: string;
 
   // Personal Information
@@ -64,6 +64,9 @@ export class User extends BaseEntity {
 
   @Column({ name: 'profile_image_url', nullable: true })
   profileImageUrl: string;
+
+  @Column({ name: 'profile_image_gradient', nullable: true })
+  profileImageGradient: string;
 
   // Onboarding Progress
   @Column({ name: 'has_completed_onboarding', default: false })

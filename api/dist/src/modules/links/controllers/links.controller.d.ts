@@ -1,5 +1,5 @@
 import { LinkService } from '../services/link.service';
-import { CreateLinkDto, UpdateLinkDto, ReorderLinksDto, ScheduleLinkDto, LockLinkDto, UnlockLinkDto, UpdateMediaDto, CustomizeLinkDto, ShareLinkDto } from '../dto/link.dto';
+import { CreateLinkDto, UpdateLinkDto, ReorderLinksDto, ScheduleLinkDto, LockLinkDto, UnlockLinkDto, UpdateMediaDto, CustomizeLinkDto, ShareLinkDto, TrackClickDto } from '../dto/link.dto';
 import { LinkType } from '../entities/link.entity';
 import { MediaProcessorService } from '../../../shared/services/media-processor.service';
 export declare class LinksController {
@@ -40,6 +40,18 @@ export declare class LinksController {
         links: import("../entities/link.entity").Link[];
         total: number;
     }>;
+    getSupportedPlatforms(category?: string, search?: string): Promise<{
+        message: string;
+        platforms: Record<string, any[]>;
+        total: number;
+        categories: string[];
+        iconBaseUrl: string;
+        namingConvention: {
+            format: string;
+            examples: string[];
+            note: string;
+        };
+    }>;
     getLinkAnalytics(req: any, linkId?: string): Promise<{
         message: string;
         analytics: import("../entities/link.entity").Link | {
@@ -47,6 +59,26 @@ export declare class LinksController {
             totalLinks: number;
             totalClicks: number;
             avgClicksPerLink: number;
+        };
+    }>;
+    getPublicLinkAnalytics(id: string): Promise<{
+        message: string;
+        analytics: {
+            totalClicks: number;
+            uniqueClicks: number;
+            clickRate: number;
+            topReferrers: {
+                referrer: string;
+                clicks: number;
+            }[];
+            topCountries: {
+                country: string;
+                clicks: number;
+            }[];
+            clicksOverTime: {
+                date: string;
+                clicks: number;
+            }[];
         };
     }>;
     getLinkById(req: any, id: string): Promise<{
@@ -64,8 +96,9 @@ export declare class LinksController {
         message: string;
         links: import("../entities/link.entity").Link[];
     }>;
-    incrementClickCount(id: string): Promise<{
+    trackClick(id: string, trackClickDto: TrackClickDto): Promise<{
         message: string;
+        clickId: string;
     }>;
     scheduleLink(req: any, id: string, scheduleDto: ScheduleLinkDto): Promise<{
         message: string;

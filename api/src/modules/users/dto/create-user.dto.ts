@@ -10,9 +10,10 @@ export class CreateUserDto {
   @MaxLength(30)
   username: string;
 
+  @IsOptional()
   @IsString()
   @MinLength(6)
-  password: string;
+  password?: string;
 }
 
 export class UpdatePersonalInfoDto {
@@ -59,6 +60,10 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   profileImageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  profileImageGradient?: string;
 }
 
 export class CompleteOnboardingDto {
@@ -75,6 +80,10 @@ export class CompleteOnboardingDto {
   @IsOptional()
   @IsString()
   profileImageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  profileImageGradient?: string;
 }
 
 export class CheckUsernameDto {
@@ -82,4 +91,29 @@ export class CheckUsernameDto {
   @MinLength(3)
   @MaxLength(30)
   username: string;
+}
+
+export class SetupPasswordDto {
+  @IsString()
+  @MinLength(6)
+  password: string;
+}
+
+export class VerifyEmailAndSetupPasswordDto {
+  @IsString()
+  token: string;
+
+  @IsString()
+  @MinLength(6)
+  password: string;
+}
+
+export class UpdatePasswordDto {
+  @IsString()
+  @MinLength(6)
+  currentPassword: string;
+
+  @IsString()
+  @MinLength(6)
+  newPassword: string;
 }

@@ -1,5 +1,5 @@
 import { SocialLinkService } from '../services/social-link.service';
-import { CreateSocialLinkDto, UpdateSocialLinkDto, UpdateSocialIconSettingsDto } from '../dto/link.dto';
+import { CreateSocialLinkDto, UpdateSocialLinkDto, UpdateSocialIconSettingsDto, ReorderLinksDto, TrackClickDto } from '../dto/link.dto';
 import { SocialPlatform } from '../entities/social-link.entity';
 export declare class SocialLinksController {
     private readonly socialLinkService;
@@ -57,13 +57,12 @@ export declare class SocialLinksController {
         message: string;
         socialLinks: import("../entities/social-link.entity").SocialLink[];
     }>;
-    reorderSocialLinks(req: any, body: {
-        linkIds: string[];
-    }): Promise<{
+    reorderSocialLinks(req: any, reorderDto: ReorderLinksDto): Promise<{
         message: string;
         socialLinks: import("../entities/social-link.entity").SocialLink[];
     }>;
-    incrementClickCount(id: string): Promise<{
+    trackClick(id: string, trackClickDto: TrackClickDto): Promise<{
         message: string;
+        clickId: string;
     }>;
 }

@@ -7,6 +7,7 @@ import { ProductVariant } from '../entities/product-variant.entity';
 import { Store } from '../entities/store.entity';
 import { CreateProductDto, UpdateProductDto, UpdateProductStatusDto, PublishProductDto } from '../dto/product.dto';
 import { SearchProductsDto, ProductAvailability, BulkUpdateTagsDto, BulkUpdatePriceDto } from '../dto/search.dto';
+import { TrackClickDto } from '../../links/dto/link.dto';
 
 @Injectable()
 export class ProductService {
@@ -31,24 +32,18 @@ export class ProductService {
       throw new NotFoundException('Store not found or does not belong to user');
     }
 
-    // Generate handle from title
-    const handle = this.generateHandle(createProductDto.title);
+    // Generate unique handle from title
+    const handle = await this.generateUniqueHandle(createProductDto.title, storeId);
+
+    // Extract variantOptions to avoid storing it in the product entity
+    const { variantOptions, ...productData } = createProductDto;
     
-    // Check if handle is unique
-    const existingProduct = await this.productRepository.findOne({
-      where: { handle }
-    });
-
-    if (existingProduct) {
-      throw new BadRequestException('A product with this title already exists');
-    }
-
     // Create product
     const product = this.productRepository.create({
-      ...createProductDto,
+      ...productData,
       storeId,
       handle,
-      status: ProductStatus.DRAFT,
+      status: createProductDto.status === 'active' ? ProductStatus.ACTIVE : ProductStatus.DRAFT,
     });
 
     const savedProduct = await this.productRepository.save(product);
@@ -68,13 +63,16 @@ export class ProductService {
 
     // Create variants if provided
     if (createProductDto.variants && createProductDto.variants.length > 0) {
-      const variants = createProductDto.variants.map((variantDto, index) =>
-        this.productVariantRepository.create({
-          ...variantDto,
+      const variants = createProductDto.variants.map((variantDto, index) => {
+        // Frontend should not send id field - backend generates UUIDs automatically
+        const { isActive, displayOrder, ...variantData } = variantDto;
+        return this.productVariantRepository.create({
+          ...variantData,
           productId: savedProduct.id,
           displayOrder: index,
-        })
-      );
+          isActive: isActive !== undefined ? isActive : true,
+        });
+      });
       await this.productVariantRepository.save(variants);
     }
 
@@ -132,28 +130,6 @@ export class ProductService {
     return product;
   }
 
-  async getPublicProduct(storeUrl: string, productHandle: string): Promise<Product> {
-    const product = await this.productRepository
-      .createQueryBuilder('product')
-      .leftJoinAndSelect('product.images', 'images')
-      .leftJoinAndSelect('product.variants', 'variants')
-      .leftJoinAndSelect('product.store', 'store')
-      .where('product.handle = :productHandle', { productHandle })
-      .andWhere('store.storeUrl = :storeUrl', { storeUrl })
-      .andWhere('product.isPublished = true')
-      .andWhere('product.status = :status', { status: ProductStatus.ACTIVE })
-      .andWhere('store.status = :storeStatus', { storeStatus: 'active' })
-      .getOne();
-
-    if (!product) {
-      throw new NotFoundException('Product not found or not available');
-    }
-
-    // Increment view count
-    await this.productRepository.increment({ id: product.id }, 'viewCount', 1);
-
-    return product;
-  }
 
   async updateProduct(userId: string, storeId: string, productId: string, updateProductDto: UpdateProductDto): Promise<Product> {
     const product = await this.getProductById(userId, storeId, productId);
@@ -498,5 +474,443 @@ export class ProductService {
       .replace(/\s+/g, '-') // Replace spaces with hyphens
       .replace(/-+/g, '-') // Replace multiple hyphens with single
       .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+  }
+
+  private async generateUniqueHandle(title: string, storeId: string): Promise<string> {
+    let baseHandle = this.generateHandle(title);
+    let handle = baseHandle;
+    let counter = 1;
+
+    // Keep checking until we find a unique handle
+    while (true) {
+      const existingProduct = await this.productRepository.findOne({
+        where: { handle, storeId }
+      });
+
+      if (!existingProduct) {
+        return handle;
+      }
+
+      // If handle exists, try with a number suffix
+      handle = `${baseHandle}-${counter}`;
+      counter++;
+    }
+  }
+
+  // ==================== PUBLIC METHODS ====================
+
+  async getPublicStoreProducts(storeId: string, options: {
+    page: number;
+    limit: number;
+    search?: string;
+    category?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    sortBy: string;
+    sortOrder: string;
+  }) {
+    const queryBuilder = this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.images', 'images')
+      .leftJoinAndSelect('product.variants', 'variants')
+      .where('product.storeId = :storeId', { storeId })
+      .andWhere('product.status = :status', { status: ProductStatus.ACTIVE })
+      .andWhere('product.isPublished = :isPublished', { isPublished: true });
+
+    // Apply search filter
+    if (options.search) {
+      queryBuilder.andWhere(
+        '(product.title ILIKE :search OR product.description ILIKE :search)',
+        { search: `%${options.search}%` }
+      );
+    }
+
+    // Apply category filter
+    if (options.category) {
+      queryBuilder.andWhere('product.productCategory = :category', { category: options.category });
+    }
+
+    // Apply price filters
+    if (options.minPrice !== undefined) {
+      queryBuilder.andWhere('product.price >= :minPrice', { minPrice: options.minPrice });
+    }
+    if (options.maxPrice !== undefined) {
+      queryBuilder.andWhere('product.price <= :maxPrice', { maxPrice: options.maxPrice });
+    }
+
+    // Apply sorting
+    const sortField = options.sortBy === 'price' ? 'product.price' : 
+                     options.sortBy === 'title' ? 'product.title' : 
+                     'product.createdAt';
+    queryBuilder.orderBy(sortField, options.sortOrder.toUpperCase() as 'ASC' | 'DESC');
+
+    // Apply pagination
+    const offset = (options.page - 1) * options.limit;
+    queryBuilder.skip(offset).take(options.limit);
+
+    const [products, total] = await queryBuilder.getManyAndCount();
+
+    const totalPages = Math.ceil(total / options.limit);
+
+    return {
+      message: 'Products retrieved successfully',
+      products: products.map(product => ({
+        id: product.id,
+        title: product.title,
+        description: product.description,
+        handle: product.handle,
+        type: product.type,
+        status: product.status,
+        price: product.price?.toString(),
+        compareAtPrice: product.compareAtPrice?.toString(),
+        trackQuantity: product.trackQuantity,
+        inventoryQuantity: product.inventoryQuantity,
+        requiresShipping: product.requiresShipping,
+        weight: product.weight,
+        weightUnit: product.weightUnit,
+        tags: product.tags,
+        isPublished: product.isPublished,
+        publishedAt: product.publishedAt,
+        isFeatured: product.isFeatured,
+        viewCount: product.viewCount,
+        orderCount: product.orderCount,
+        images: product.images?.map(image => ({
+          id: image.id,
+          imageUrl: image.imageUrl,
+          altText: image.altText,
+          displayOrder: image.displayOrder,
+          isPrimary: image.isPrimary
+        })) || [],
+        variants: product.variants?.map(variant => ({
+          id: variant.id,
+          title: variant.title,
+          sku: variant.sku,
+          price: variant.price?.toString(),
+          compareAtPrice: variant.compareAtPrice?.toString(),
+          inventoryQuantity: variant.inventoryQuantity,
+          isActive: variant.isActive,
+          displayOrder: variant.displayOrder
+        })) || [],
+        createdAt: product.createdAt
+      })),
+      pagination: {
+        total,
+        page: options.page,
+        limit: options.limit,
+        totalPages,
+        hasNext: options.page < totalPages,
+        hasPrev: options.page > 1
+      }
+    };
+  }
+
+  async getPublicProduct(storeId: string, productHandle: string) {
+    const product = await this.productRepository.findOne({
+      where: { 
+        storeId, 
+        handle: productHandle,
+        status: ProductStatus.ACTIVE,
+        isPublished: true
+      },
+      relations: ['images', 'variants', 'store', 'store.user']
+    });
+
+    if (!product) {
+      // Return null product for SSR compatibility instead of 404
+      return {
+        message: 'Product not found',
+        product: null,
+        store: null
+      };
+    }
+
+    return {
+      message: 'Product retrieved successfully',
+      product: {
+        id: product.id,
+        title: product.title,
+        description: product.description,
+        handle: product.handle,
+        type: product.type,
+        status: product.status,
+        price: product.price?.toString(),
+        compareAtPrice: product.compareAtPrice?.toString(),
+        costPerItem: product.costPerItem?.toString(),
+        trackQuantity: product.trackQuantity,
+        inventoryQuantity: product.inventoryQuantity,
+        continueSelling: product.continueSelling,
+        requiresShipping: product.requiresShipping,
+        weight: product.weight,
+        weightUnit: product.weightUnit,
+        seoTitle: product.seoTitle,
+        seoDescription: product.seoDescription,
+        productCategory: product.productCategory,
+        productType: product.productType,
+        vendor: product.vendor,
+        tags: product.tags,
+        isPublished: product.isPublished,
+        publishedAt: product.publishedAt,
+        isFeatured: product.isFeatured,
+        viewCount: product.viewCount,
+        orderCount: product.orderCount,
+        images: product.images?.map(image => ({
+          id: image.id,
+          imageUrl: image.imageUrl,
+          altText: image.altText,
+          displayOrder: image.displayOrder,
+          isPrimary: image.isPrimary,
+          fileSize: image.fileSize,
+          fileType: image.fileType
+        })) || [],
+        variants: product.variants?.map(variant => ({
+          id: variant.id,
+          title: variant.title,
+          sku: variant.sku,
+          barcode: variant.barcode,
+          price: variant.price?.toString(),
+          compareAtPrice: variant.compareAtPrice?.toString(),
+          costPerItem: variant.costPerItem?.toString(),
+          inventoryQuantity: variant.inventoryQuantity,
+          inventoryPolicy: variant.inventoryPolicy,
+          option1Name: variant.option1Name,
+          option1Value: variant.option1Value,
+          option2Name: variant.option2Name,
+          option2Value: variant.option2Value,
+          weight: variant.weight,
+          weightUnit: variant.weightUnit,
+          isActive: variant.isActive,
+          displayOrder: variant.displayOrder
+        })) || [],
+        createdAt: product.createdAt,
+        updatedAt: product.updatedAt
+      },
+      store: {
+        id: product.store.id,
+        name: product.store.name,
+        storeUrl: product.store.storeUrl,
+        logoUrl: product.store.logoUrl
+      }
+    };
+  }
+
+  async searchPublicProducts(options: {
+    q: string;
+    page: number;
+    limit: number;
+    category?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    sortBy: string;
+    sortOrder: string;
+  }) {
+    const queryBuilder = this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.images', 'images')
+      .leftJoinAndSelect('product.store', 'store')
+      .leftJoinAndSelect('store.user', 'user')
+      .where('product.status = :status', { status: ProductStatus.ACTIVE })
+      .andWhere('product.isPublished = :isPublished', { isPublished: true })
+      .andWhere('store.status = :storeStatus', { storeStatus: 'active' })
+      .andWhere('store.isActive = :storeActive', { storeActive: true });
+
+    // Apply search filter
+    if (options.q) {
+      queryBuilder.andWhere(
+        '(product.title ILIKE :search OR product.description ILIKE :search)',
+        { search: `%${options.q}%` }
+      );
+    }
+
+    // Apply category filter
+    if (options.category) {
+      queryBuilder.andWhere('product.productCategory = :category', { category: options.category });
+    }
+
+    // Apply price filters
+    if (options.minPrice !== undefined) {
+      queryBuilder.andWhere('product.price >= :minPrice', { minPrice: options.minPrice });
+    }
+    if (options.maxPrice !== undefined) {
+      queryBuilder.andWhere('product.price <= :maxPrice', { maxPrice: options.maxPrice });
+    }
+
+    // Apply sorting
+    let sortField = 'product.createdAt';
+    if (options.sortBy === 'price') {
+      sortField = 'product.price';
+    } else if (options.sortBy === 'title') {
+      sortField = 'product.title';
+    } else if (options.sortBy === 'relevance' && options.q) {
+      // For relevance, we'll sort by title match first, then by created date
+      sortField = 'product.title';
+    }
+    
+    queryBuilder.orderBy(sortField, options.sortOrder.toUpperCase() as 'ASC' | 'DESC');
+
+    // Apply pagination
+    const offset = (options.page - 1) * options.limit;
+    queryBuilder.skip(offset).take(options.limit);
+
+    const [products, total] = await queryBuilder.getManyAndCount();
+
+    const totalPages = Math.ceil(total / options.limit);
+
+    return {
+      message: 'Search completed successfully',
+      products: products.map(product => ({
+        id: product.id,
+        title: product.title,
+        description: product.description,
+        handle: product.handle,
+        price: product.price?.toString(),
+        compareAtPrice: product.compareAtPrice?.toString(),
+        images: product.images?.map(image => ({
+          imageUrl: image.imageUrl,
+          altText: image.altText,
+          isPrimary: image.isPrimary
+        })) || [],
+        store: {
+          id: product.store.id,
+          name: product.store.name,
+          storeUrl: product.store.storeUrl,
+          logoUrl: product.store.logoUrl
+        },
+        owner: {
+          username: product.store.user.username,
+          profileImageUrl: product.store.user.profileImageUrl
+        }
+      })),
+      pagination: {
+        total,
+        page: options.page,
+        limit: options.limit,
+        totalPages,
+        hasNext: options.page < totalPages,
+        hasPrev: options.page > 1
+      },
+      filters: {
+        categories: await this.getAvailableCategories(),
+        priceRange: await this.getPriceRange()
+      }
+    };
+  }
+
+  async getFeaturedProducts(options: {
+    page: number;
+    limit: number;
+  }) {
+    const queryBuilder = this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.images', 'images')
+      .leftJoinAndSelect('product.store', 'store')
+      .leftJoinAndSelect('store.user', 'user')
+      .where('product.status = :status', { status: ProductStatus.ACTIVE })
+      .andWhere('product.isPublished = :isPublished', { isPublished: true })
+      .andWhere('product.isFeatured = :isFeatured', { isFeatured: true })
+      .andWhere('store.status = :storeStatus', { storeStatus: 'active' })
+      .andWhere('store.isActive = :storeActive', { storeActive: true })
+      .orderBy('product.createdAt', 'DESC');
+
+    // Apply pagination
+    const offset = (options.page - 1) * options.limit;
+    queryBuilder.skip(offset).take(options.limit);
+
+    const [products, total] = await queryBuilder.getManyAndCount();
+
+    const totalPages = Math.ceil(total / options.limit);
+
+    return {
+      message: 'Featured products retrieved successfully',
+      products: products.map(product => ({
+        id: product.id,
+        title: product.title,
+        description: product.description,
+        handle: product.handle,
+        price: product.price?.toString(),
+        compareAtPrice: product.compareAtPrice?.toString(),
+        images: product.images?.map(image => ({
+          imageUrl: image.imageUrl,
+          altText: image.altText,
+          isPrimary: image.isPrimary
+        })) || [],
+        store: {
+          name: product.store.name,
+          storeUrl: product.store.storeUrl,
+          logoUrl: product.store.logoUrl
+        },
+        owner: {
+          username: product.store.user.username,
+          profileImageUrl: product.store.user.profileImageUrl
+        }
+      })),
+      pagination: {
+        total,
+        page: options.page,
+        limit: options.limit,
+        totalPages,
+        hasNext: options.page < totalPages,
+        hasPrev: options.page > 1
+      }
+    };
+  }
+
+  private async getAvailableCategories(): Promise<string[]> {
+    const result = await this.productRepository
+      .createQueryBuilder('product')
+      .leftJoin('product.store', 'store')
+      .select('DISTINCT product.productCategory', 'category')
+      .where('product.status = :status', { status: ProductStatus.ACTIVE })
+      .andWhere('product.isPublished = :isPublished', { isPublished: true })
+      .andWhere('store.status = :storeStatus', { storeStatus: 'active' })
+      .andWhere('store.isActive = :storeActive', { storeActive: true })
+      .andWhere('product.productCategory IS NOT NULL')
+      .getRawMany();
+
+    return result.map(row => row.category).filter(Boolean);
+  }
+
+  private async getPriceRange(): Promise<{ min: number; max: number }> {
+    const result = await this.productRepository
+      .createQueryBuilder('product')
+      .leftJoin('product.store', 'store')
+      .select('MIN(product.price)', 'min')
+      .addSelect('MAX(product.price)', 'max')
+      .where('product.status = :status', { status: ProductStatus.ACTIVE })
+      .andWhere('product.isPublished = :isPublished', { isPublished: true })
+      .andWhere('store.status = :storeStatus', { storeStatus: 'active' })
+      .andWhere('store.isActive = :storeActive', { storeActive: true })
+      .andWhere('product.price IS NOT NULL')
+      .getRawOne();
+
+    return {
+      min: parseFloat(result.min) || 0,
+      max: parseFloat(result.max) || 0
+    };
+  }
+
+  async trackProductView(storeId: string, productHandle: string, trackClickDto: TrackClickDto): Promise<string> {
+    const product = await this.productRepository.findOne({
+      where: {
+        storeId,
+        handle: productHandle,
+        status: ProductStatus.ACTIVE,
+        isPublished: true
+      }
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    // Increment view count
+    await this.productRepository.increment({ id: product.id }, 'viewCount', 1);
+    
+    // Generate a view ID for tracking
+    const viewId = require('crypto').randomUUID();
+    
+    // TODO: Store detailed view analytics in a separate table
+    // For now, we just return the view ID
+    
+    return viewId;
   }
 }

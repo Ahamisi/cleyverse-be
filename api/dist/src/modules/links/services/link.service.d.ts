@@ -2,7 +2,7 @@ import { Repository } from 'typeorm';
 import { BaseService } from '../../../common/base/base.service';
 import { Link, LinkType } from '../entities/link.entity';
 import { User } from '../../users/entities/user.entity';
-import { CreateLinkDto, UpdateLinkDto, ReorderLinksDto, ScheduleLinkDto, LockLinkDto, UnlockLinkDto, UpdateMediaDto, CustomizeLinkDto, ShareLinkDto } from '../dto/link.dto';
+import { CreateLinkDto, UpdateLinkDto, ReorderLinksDto, ScheduleLinkDto, LockLinkDto, UnlockLinkDto, UpdateMediaDto, CustomizeLinkDto, ShareLinkDto, TrackClickDto } from '../dto/link.dto';
 import { MediaProcessorService } from '../../../shared/services/media-processor.service';
 export declare class LinkService extends BaseService<Link> {
     private readonly linkRepository;
@@ -15,6 +15,7 @@ export declare class LinkService extends BaseService<Link> {
     updateLink(userId: string, linkId: string, updateLinkDto: UpdateLinkDto): Promise<Link>;
     deleteLink(userId: string, linkId: string): Promise<void>;
     reorderLinks(userId: string, reorderDto: ReorderLinksDto): Promise<Link[]>;
+    trackClick(linkId: string, trackClickDto: TrackClickDto): Promise<string>;
     incrementClickCount(linkId: string): Promise<void>;
     getLinksByType(userId: string, type: LinkType): Promise<Link[]>;
     getFeaturedLinks(userId: string): Promise<Link[]>;
@@ -23,6 +24,23 @@ export declare class LinkService extends BaseService<Link> {
         totalLinks: number;
         totalClicks: number;
         avgClicksPerLink: number;
+    }>;
+    getPublicLinkAnalytics(linkId: string): Promise<{
+        totalClicks: number;
+        uniqueClicks: number;
+        clickRate: number;
+        topReferrers: {
+            referrer: string;
+            clicks: number;
+        }[];
+        topCountries: {
+            country: string;
+            clicks: number;
+        }[];
+        clicksOverTime: {
+            date: string;
+            clicks: number;
+        }[];
     }>;
     private reorderLinksAfterDeletion;
     scheduleLink(userId: string, linkId: string, scheduleDto: ScheduleLinkDto): Promise<Link>;

@@ -1,14 +1,18 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, forwardRef, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Store, StoreStatus } from '../entities/store.entity';
 import { CreateStoreDto, UpdateStoreDto, UpdateStoreStatusDto } from '../dto/store.dto';
+import { ProductService } from './product.service';
+import { TrackClickDto } from '../../links/dto/link.dto';
 
 @Injectable()
 export class StoreService {
   constructor(
     @InjectRepository(Store)
     private readonly storeRepository: Repository<Store>,
+    @Inject(forwardRef(() => ProductService))
+    private readonly productService: ProductService,
   ) {}
 
   async createStore(userId: string, createStoreDto: CreateStoreDto): Promise<Store> {
@@ -62,22 +66,6 @@ export class StoreService {
     return store;
   }
 
-  async getPublicStore(storeUrl: string): Promise<Store> {
-    const store = await this.storeRepository.findOne({
-      where: { 
-        storeUrl, 
-        status: StoreStatus.ACTIVE,
-        isActive: true 
-      },
-      relations: ['products']
-    });
-
-    if (!store) {
-      throw new NotFoundException('Store not found or not available');
-    }
-
-    return store;
-  }
 
   async updateStore(userId: string, storeId: string, updateStoreDto: UpdateStoreDto): Promise<Store> {
     const store = await this.getStoreById(userId, storeId);
@@ -240,5 +228,130 @@ export class StoreService {
         averageRevenuePerStore: totalStores > 0 ? totalRevenue / totalStores : 0,
       }
     };
+  }
+
+  // ==================== PUBLIC METHODS ====================
+
+  async getPublicStore(storeUrl: string) {
+    const store = await this.storeRepository.findOne({
+      where: { storeUrl, isActive: true },
+      relations: ['user'],
+      select: [
+        'id', 'name', 'description', 'storeUrl', 'logoUrl', 'bannerUrl',
+        'currency', 'isActive', 'status', 'totalProducts', 'createdAt'
+      ]
+    });
+
+    if (!store || store.status !== StoreStatus.ACTIVE) {
+      // Return empty data structure for SSR compatibility instead of 404
+      return {
+        message: 'Store not found or not active',
+        store: null,
+        owner: null,
+        exists: false
+      };
+    }
+
+    return {
+      message: 'Store retrieved successfully',
+      store: {
+        id: store.id,
+        name: store.name,
+        description: store.description,
+        storeUrl: store.storeUrl,
+        logoUrl: store.logoUrl,
+        bannerUrl: store.bannerUrl,
+        currency: store.currency,
+        isActive: store.isActive,
+        totalProducts: store.totalProducts,
+        createdAt: store.createdAt
+      },
+      owner: {
+        id: store.user.id,
+        username: store.user.username,
+        firstName: store.user.firstName,
+        lastName: store.user.lastName,
+        profileImageUrl: store.user.profileImageUrl
+      },
+      exists: true
+    };
+  }
+
+  async getPublicStoreProducts(storeUrl: string, options: {
+    page: number;
+    limit: number;
+    search?: string;
+    category?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    sortBy: string;
+    sortOrder: string;
+  }) {
+    // First verify the store exists and is active
+    const store = await this.storeRepository.findOne({
+      where: { storeUrl, isActive: true }
+    });
+
+    if (!store || store.status !== StoreStatus.ACTIVE) {
+      // Return empty products array for SSR compatibility instead of 404
+      return {
+        message: 'Store not found or not active',
+        products: [],
+        pagination: {
+          total: 0,
+          page: options.page,
+          limit: options.limit,
+          totalPages: 0,
+          hasNext: false,
+          hasPrev: false
+        },
+        exists: false
+      };
+    }
+
+    // Use ProductService to get the products
+    const result = await this.productService.getPublicStoreProducts(store.id, options);
+    return {
+      ...result,
+      exists: true
+    };
+  }
+
+  async getPublicProduct(storeUrl: string, productHandle: string) {
+    // First verify the store exists and is active
+    const store = await this.storeRepository.findOne({
+      where: { storeUrl, isActive: true }
+    });
+
+    if (!store || store.status !== StoreStatus.ACTIVE) {
+      // Return empty product data for SSR compatibility instead of 404
+      return {
+        message: 'Store not found or not active',
+        product: null,
+        store: null,
+        exists: false
+      };
+    }
+
+    // Use ProductService to get the product
+    const result = await this.productService.getPublicProduct(store.id, productHandle);
+    return {
+      ...result,
+      exists: true
+    };
+  }
+
+  async trackProductView(storeUrl: string, productHandle: string, trackClickDto: TrackClickDto): Promise<string> {
+    // First verify the store exists and is active
+    const store = await this.storeRepository.findOne({
+      where: { storeUrl, isActive: true }
+    });
+
+    if (!store || store.status !== StoreStatus.ACTIVE) {
+      throw new NotFoundException('Store not found or not active');
+    }
+
+    // Use ProductService to track the view
+    return this.productService.trackProductView(store.id, productHandle, trackClickDto);
   }
 }

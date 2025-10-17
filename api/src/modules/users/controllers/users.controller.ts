@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Query, Put, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, Put, UseGuards, Request, Param } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { UserService, EmailVerificationService } from '../services';
 import { 
@@ -8,7 +8,10 @@ import {
   CheckUsernameDto, 
   UpdateUsernameDto, 
   UpdateProfileDto,
-  CompleteOnboardingDto 
+  CompleteOnboardingDto,
+  SetupPasswordDto,
+  VerifyEmailAndSetupPasswordDto,
+  UpdatePasswordDto
 } from '../dto/create-user.dto';
 
 @Controller('users')
@@ -48,6 +51,11 @@ export class UsersController {
   @Get('goals')
   async getGoals() {
     return { goals: this.userService.getGoals() };
+  }
+
+  @Get('public/:username')
+  async getPublicProfile(@Param('username') username: string) {
+    return this.userService.getPublicProfile(username);
   }
 
   // ==================== AUTHENTICATED ENDPOINTS ====================
@@ -107,5 +115,44 @@ export class UsersController {
   @Get('profile')
   async getProfile(@Request() req) {
     return this.userService.getOnboardingStatus(req.user.userId);
+  }
+
+  @Post('setup-password')
+  @UseGuards(JwtAuthGuard)
+  async setupPassword(@Request() req, @Body() setupPasswordDto: SetupPasswordDto) {
+    const user = await this.userService.setupPassword(req.user.userId, setupPasswordDto.password);
+    const { password, ...userWithoutPassword } = user;
+    return {
+      message: 'Password set up successfully',
+      user: userWithoutPassword
+    };
+  }
+
+  @Post('verify-and-setup-password')
+  async verifyEmailAndSetupPassword(@Body() verifyAndSetupDto: VerifyEmailAndSetupPasswordDto) {
+    const user = await this.userService.verifyEmailAndSetupPassword(
+      verifyAndSetupDto.token, 
+      verifyAndSetupDto.password
+    );
+    const { password, ...userWithoutPassword } = user;
+    return {
+      message: 'Email verified and password set up successfully',
+      user: userWithoutPassword
+    };
+  }
+
+  @Put('update-password')
+  @UseGuards(JwtAuthGuard)
+  async updatePassword(@Request() req, @Body() updatePasswordDto: UpdatePasswordDto) {
+    const user = await this.userService.updatePassword(
+      req.user.userId,
+      updatePasswordDto.currentPassword,
+      updatePasswordDto.newPassword
+    );
+    const { password, ...userWithoutPassword } = user;
+    return {
+      message: 'Password updated successfully',
+      user: userWithoutPassword
+    };
   }
 }

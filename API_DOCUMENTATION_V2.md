@@ -1,5 +1,17 @@
 # 🚀 Cleyverse API Documentation v2.0
 
+> **🆕 Latest Update (Oct 11, 2025)**: Passwordless Registration & Enhanced Password Management
+
+## ⭐ What's New
+
+| Feature | Endpoint | Description |
+|---------|----------|-------------|
+| 🔓 **Passwordless Registration** | `POST /users/register` | Register with just email + username (password optional) |
+| 📧 **Verify & Setup Password** | `POST /users/verify-and-setup-password` | One-step email verification + password setup |
+| 🔑 **Setup Password** | `POST /users/setup-password` | Setup password after registration (authenticated) |
+| 🔄 **Update Password** | `PUT /users/update-password` | Change existing password (authenticated) |
+| 💬 **Smart Error Messages** | All endpoints | Contextual error messages guide users to correct action |
+
 ## 📋 Table of Contents
 1. [Overview](#overview)
 2. [Architecture](#architecture)
@@ -18,6 +30,8 @@
 
 ### Key Features
 - 🔐 **JWT Authentication** - Secure token-based auth
+- 🔓 **Passwordless Registration** - Frictionless signup experience (NEW)
+- 🔑 **Complete Password Management** - Setup, update, and reset passwords (NEW)
 - 👤 **User Management** - Complete onboarding flow
 - 📧 **Email Verification** - Secure email validation
 - 🔗 **Link Management** - Regular & social link system
@@ -124,11 +138,55 @@ api/src/
 
 ### 🔐 **JWT Token-Based Authentication**
 
-#### Login Flow
-1. **Register** → Get user account (unverified)
-2. **Verify Email** → Activate account
-3. **Login** → Get JWT token
-4. **Use Token** → Access protected endpoints
+#### 🎯 Passwordless Registration Flow (Recommended)
+We now support a frictionless registration experience where users can sign up without a password:
+
+1. **Register** → `POST /users/register` (email + username only)
+2. **Check Email** → User receives verification email
+3. **Verify & Setup Password** → `POST /users/verify-and-setup-password` (token + password)
+4. **Login** → `POST /auth/login` (email + password)
+5. **Use Token** → Access protected endpoints
+
+#### 🔄 Traditional Registration Flow (Still Supported)
+For users who prefer to set a password immediately:
+
+1. **Register** → `POST /users/register` (email + username + password)
+2. **Check Email** → User receives verification email
+3. **Verify Email** → `GET /users/verify-email?token=xxx`
+4. **Login** → `POST /auth/login` (email + password)
+5. **Use Token** → Access protected endpoints
+
+#### 🔑 Password Management Endpoints
+
+| Endpoint | Purpose | Auth Required |
+|----------|---------|---------------|
+| `POST /users/setup-password` | Setup password (for users without password) | ✅ Yes |
+| `POST /users/verify-and-setup-password` | Verify email + setup password (one step) | ❌ No |
+| `PUT /users/update-password` | Change existing password | ✅ Yes |
+
+#### 🎯 Smart Login Flow with Temporary Codes (NEW)
+Intelligent authentication system that adapts to user context and device:
+
+1. **Check User Status** → `POST /auth/check-user` (email + optional deviceFingerprint)
+2. **Smart Routing:**
+   - **Known Device + Has Password** → Show password input (fastest)
+   - **New Device + Has Password** → Show both options (password or temp code)
+   - **No Password** → Send temp code only
+3. **Login:**
+   - **Option A:** `POST /auth/login` (password + deviceFingerprint)
+   - **Option B:** `POST /auth/send-temp-code` → `POST /auth/verify-temp-code`
+4. **Get Token** → 7-day JWT token
+5. **Access** → Use token for protected endpoints
+
+#### 🔐 Authentication Endpoints Summary
+
+| Endpoint | Purpose | Auth | Device Tracking |
+|----------|---------|------|-----------------|
+| `POST /auth/check-user` | Check user status & device | ❌ No | ✅ Yes |
+| `POST /auth/login` | Login with password | ❌ No | ✅ Yes |
+| `POST /auth/send-temp-code` | Send 6-digit code to email | ❌ No | ❌ No |
+| `POST /auth/verify-temp-code` | Verify code & get token | ❌ No | ✅ Yes |
+| `POST /auth/resend-temp-code` | Resend code (1min cooldown) | ❌ No | ❌ No |
 
 #### Token Format
 ```javascript
@@ -139,7 +197,7 @@ api/src/
     "email": "user@example.com",
     "username": "username"
   },
-  "expires_in": "24h"
+  "expires_in": "7d"  // Extended to 7 days
 }
 ```
 
@@ -159,14 +217,54 @@ Authorization: Bearer YOUR_JWT_TOKEN
 
 ### 👤 **Authentication Endpoints**
 
-#### **POST /auth/login**
-Authenticate user and get JWT token.
+#### **POST /auth/check-user** ⭐ **NEW**
+Check user status and device recognition before login. This endpoint helps determine whether to show password input, temp code input, or both.
 
 **Request:**
 ```json
 {
   "email": "user@example.com",
-  "password": "password123"
+  "deviceFingerprint": "device-123-abc"
+}
+```
+
+**Response (200):**
+```json
+{
+  "hasPassword": true,
+  "isKnownDevice": false,
+  "requiresTempCode": true,
+  "canUsePassword": true,
+  "user": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "user@example.com",
+    "username": "johndoe",
+    "hasCompletedOnboarding": false,
+    "onboardingStep": 3
+  },
+  "message": "User status checked"
+}
+```
+
+**Response Logic:**
+- `hasPassword: true, isKnownDevice: true` → Show password input (fastest flow)
+- `hasPassword: true, isKnownDevice: false` → Show both password and "Use temp code" options
+- `hasPassword: false` → Only show temp code option
+
+**Errors:**
+- `404` - "User not found. Please register first."
+
+---
+
+#### **POST /auth/login** ⭐ **UPDATED**
+Authenticate user with password and optional device tracking.
+
+**Request:**
+```json
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "deviceFingerprint": "device-123-abc"
 }
 ```
 
@@ -184,22 +282,122 @@ Authenticate user and get JWT token.
     "hasCompletedOnboarding": false,
     "onboardingStep": 3
   },
-  "expires_in": "24h"
+  "expires_in": "7d",
+  "message": "Login successful"
 }
 ```
 
 **Errors:**
-- `400` - Invalid credentials
-- `401` - Unauthorized
+- `401` - "Invalid credentials"
+- `401` - "Please set up your password first. Check your email for verification link."
+
+---
+
+#### **POST /auth/send-temp-code** ⭐ **NEW**
+Send a temporary 6-digit code to user's email for passwordless login.
+
+**Request:**
+```json
+{
+  "email": "user@example.com",
+  "reason": "new_device"
+}
+```
+
+**Reason Options:**
+- `new_device` - Login from unrecognized device
+- `forgot_password` - User forgot their password
+- `onboarding` - User hasn't set up password yet
+
+**Response (200):**
+```json
+{
+  "message": "Temporary code sent to your email",
+  "expires_in": "15m",
+  "codeLength": 6
+}
+```
+
+**Errors:**
+- `404` - "User not found"
+
+---
+
+#### **POST /auth/verify-temp-code** ⭐ **NEW**
+Verify temporary code and get JWT token.
+
+**Request:**
+```json
+{
+  "email": "user@example.com",
+  "code": "123456",
+  "deviceFingerprint": "device-123-abc"
+}
+```
+
+**Response (200):**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "user@example.com",
+    "username": "johndoe",
+    "hasCompletedOnboarding": false,
+    "onboardingStep": 3
+  },
+  "expires_in": "7d",
+  "message": "Login successful"
+}
+```
+
+**Errors:**
+- `400` - "Invalid or expired temporary code"
+- `400` - "Temporary code has expired. Please request a new one."
+- `400` - "Too many attempts. Please request a new code."
+- `404` - "User not found"
+
+---
+
+#### **POST /auth/resend-temp-code** ⭐ **NEW**
+Resend temporary code (with 1-minute cooldown to prevent spam).
+
+**Request:**
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**Response (200):**
+```json
+{
+  "message": "New temporary code sent",
+  "expires_in": "15m",
+  "codeLength": 6
+}
+```
+
+**Errors:**
+- `400` - "Please wait before requesting a new code" (if < 1 minute since last code)
+- `404` - "User not found"
 
 ---
 
 ### 👥 **User Management Endpoints**
 
-#### **POST /users/register**
-Register a new user account.
+#### **POST /users/register** ⭐ **UPDATED - Password Now Optional**
+Register a new user account. Password is now optional for a smoother onboarding experience.
 
-**Request:**
+**Request Option 1 - Passwordless Registration (Recommended):**
+```json
+{
+  "email": "newuser@example.com",
+  "username": "newuser123"
+}
+```
+
+**Request Option 2 - With Password (Traditional):**
 ```json
 {
   "email": "newuser@example.com",
@@ -211,32 +409,30 @@ Register a new user account.
 **Response (201):**
 ```json
 {
-  "message": "User registered successfully. Please check your email to verify your account.",
-  "user": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "email": "newuser@example.com",
-    "username": "newuser123",
-    "firstName": null,
-    "lastName": null,
-    "category": null,
-    "goal": null,
-    "profileTitle": null,
-    "bio": null,
-    "profileImageUrl": null,
-    "hasCompletedOnboarding": false,
-    "onboardingStep": 1,
-    "isEmailVerified": false,
-    "emailVerifiedAt": null,
-    "createdAt": "2025-09-29T02:15:30.123Z",
-    "updatedAt": "2025-09-29T02:15:30.123Z"
-  },
-  "requiresVerification": true
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "email": "newuser@example.com",
+  "username": "newuser123",
+  "firstName": null,
+  "lastName": null,
+  "category": null,
+  "goal": null,
+  "profileTitle": null,
+  "bio": null,
+  "profileImageUrl": null,
+  "hasCompletedOnboarding": false,
+  "onboardingStep": 1,
+  "isEmailVerified": false,
+  "emailVerifiedAt": null,
+  "createdAt": "2025-09-29T02:15:30.123Z",
+  "updatedAt": "2025-09-29T02:15:30.123Z"
 }
 ```
 
 **Errors:**
-- `400` - Email or username already exists
-- `400` - Validation errors
+- `400` - "An account with this email already exists. Please login to continue." (if user has password)
+- `400` - "An account with this email already exists. Please check your email to verify your account and set up your password." (if user has no password)
+- `400` - "This username is already taken. Please choose a different username."
+- `400` - Validation errors (email format, username length, etc.)
 
 ---
 
@@ -285,6 +481,181 @@ Resend email verification link.
 **Errors:**
 - `400` - Email already verified
 - `404` - User not found
+
+---
+
+#### **POST /users/setup-password** ⭐ **NEW**
+Setup password for users who registered without a password (requires authentication).
+
+**Auth Required:** ✅ Yes (JWT Token)
+
+**Request:**
+```json
+{
+  "password": "newsecurepassword123"
+}
+```
+
+**Response (200):**
+```json
+{
+  "message": "Password set up successfully",
+  "user": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "user@example.com",
+    "username": "johndoe",
+    "firstName": "John",
+    "lastName": "Doe",
+    "isEmailVerified": true,
+    "hasCompletedOnboarding": false,
+    "onboardingStep": 3
+  }
+}
+```
+
+**Errors:**
+- `400` - "Password already set for this user. Use the update password endpoint instead."
+- `400` - "Password is required"
+- `400` - Password must be at least 6 characters
+- `401` - Unauthorized (no token or invalid token)
+- `404` - User not found
+
+---
+
+#### **POST /users/verify-and-setup-password** ⭐ **NEW**
+Verify email and setup password in one step (public endpoint - no authentication required).
+
+**Auth Required:** ❌ No
+
+**Request:**
+```json
+{
+  "token": "email-verification-token-from-email",
+  "password": "newsecurepassword123"
+}
+```
+
+**Response (200):**
+```json
+{
+  "message": "Email verified and password set up successfully",
+  "user": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "user@example.com",
+    "username": "johndoe",
+    "firstName": null,
+    "lastName": null,
+    "isEmailVerified": true,
+    "emailVerifiedAt": "2025-10-11T20:45:30.123Z",
+    "hasCompletedOnboarding": false,
+    "onboardingStep": 1
+  }
+}
+```
+
+**Errors:**
+- `400` - "Verification token is required"
+- `400` - "Invalid or expired verification token"
+- `400` - "Password is required"
+- `400` - Password must be at least 6 characters
+
+**💡 Use Case:**
+This is the recommended endpoint for completing user onboarding. When users click the verification link in their email, redirect them to a page where they can set their password. This endpoint handles both email verification and password setup simultaneously.
+
+---
+
+#### **PUT /users/update-password** ⭐ **NEW**
+Change password for users who already have a password set (requires authentication).
+
+**Auth Required:** ✅ Yes (JWT Token)
+
+**Request:**
+```json
+{
+  "currentPassword": "oldpassword123",
+  "newPassword": "newsecurepassword456"
+}
+```
+
+**Response (200):**
+```json
+{
+  "message": "Password updated successfully",
+  "user": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "user@example.com",
+    "username": "johndoe",
+    "firstName": "John",
+    "lastName": "Doe",
+    "isEmailVerified": true,
+    "hasCompletedOnboarding": true
+  }
+}
+```
+
+**Errors:**
+- `400` - "Current password is incorrect"
+- `400` - "New password must be different from current password"
+- `400` - "Please set up your password first" (if user has no password)
+- `400` - "Password is required"
+- `400` - Password must be at least 6 characters
+- `401` - Unauthorized (no token or invalid token)
+- `404` - User not found
+
+---
+
+### 📘 **Password Management - Quick Reference with cURL**
+
+#### 1. Passwordless Registration
+```bash
+curl -X POST http://localhost:3000/users/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "newuser@example.com",
+    "username": "newuser123"
+  }'
+```
+
+#### 2. Verify Email & Setup Password (One Step)
+```bash
+curl -X POST http://localhost:3000/users/verify-and-setup-password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token": "verification-token-from-email",
+    "password": "securepassword123"
+  }'
+```
+
+#### 3. Login
+```bash
+curl -X POST http://localhost:3000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "newuser@example.com",
+    "password": "securepassword123"
+  }'
+```
+
+#### 4. Setup Password (Authenticated)
+```bash
+curl -X POST http://localhost:3000/users/setup-password \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "password": "newsecurepassword123"
+  }'
+```
+
+#### 5. Update Password
+```bash
+curl -X PUT http://localhost:3000/users/update-password \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "currentPassword": "oldpassword123",
+    "newPassword": "newpassword456"
+  }'
+```
 
 ---
 
@@ -478,7 +849,8 @@ Authorization: Bearer YOUR_JWT_TOKEN
 {
   "profileTitle": "Tech Creator & Developer",
   "bio": "Building amazing apps and sharing knowledge with the community.",
-  "profileImageUrl": "https://example.com/avatar.jpg"
+  "profileImageUrl": "https://api.dicebear.com/7.x/avataaars/svg?seed=johndoe",
+  "profileImageGradient": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
 }
 ```
 
@@ -490,7 +862,8 @@ Authorization: Bearer YOUR_JWT_TOKEN
     // Updated user object
     "profileTitle": "Tech Creator & Developer",
     "bio": "Building amazing apps...",
-    "profileImageUrl": "https://example.com/avatar.jpg",
+    "profileImageUrl": "https://api.dicebear.com/7.x/avataaars/svg?seed=johndoe",
+    "profileImageGradient": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
     "onboardingStep": 5
   },
   "nextStep": "complete"
@@ -512,7 +885,8 @@ Authorization: Bearer YOUR_JWT_TOKEN
 {
   "profileTitle": "Final Title",
   "bio": "Final bio",
-  "profileImageUrl": "https://example.com/final-avatar.jpg"
+  "profileImageUrl": "https://api.dicebear.com/7.x/avataaars/svg?seed=johndoe",
+  "profileImageGradient": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
 }
 ```
 
@@ -575,6 +949,49 @@ Authorization: Bearer YOUR_JWT_TOKEN
 ---
 
 ### 🔗 **Link Management Endpoints**
+
+#### **GET /links/supported-platforms**
+Get all supported platforms for link creation. **[NO AUTH REQUIRED - PUBLIC]**
+
+**Query Parameters:**
+- `category` (optional): Filter by category (e.g., "social", "media", "commerce")
+- `search` (optional): Search platforms by name, description, or domain
+
+**Response:**
+```json
+{
+  "message": "Supported platforms retrieved successfully",
+  "platforms": {
+    "social": [
+      {
+        "id": "instagram",
+        "name": "Instagram",
+        "domain": "instagram.com",
+        "icon": "/icons/social/instagram.svg",
+        "category": "social",
+        "subcategory": "photo-sharing",
+        "color": "#E4405F",
+        "verified": true,
+        "patterns": ["instagram.com", "instagr.am"],
+        "description": "Photo and video sharing platform"
+      }
+    ]
+  },
+  "total": 47,
+  "categories": ["social", "media", "commerce", "fundraising", "creator-economy", "professional", "publishing", "productivity", "education", "gaming"],
+  "iconBaseUrl": "/icons",
+  "namingConvention": {
+    "format": "{category}/{id}.svg",
+    "examples": ["social/instagram.svg", "media/spotify.svg", "commerce/shopify.svg"],
+    "note": "All icons should be lowercase with hyphens for multi-word names"
+  }
+}
+```
+
+**Example Usage:**
+- Get all platforms: `GET /links/supported-platforms`
+- Get social platforms only: `GET /links/supported-platforms?category=social`
+- Search for music platforms: `GET /links/supported-platforms?search=music`
 
 #### **POST /links**
 Create a new custom link with **🆕 Smart Media Detection**. **[AUTH REQUIRED]**

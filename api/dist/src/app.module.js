@@ -31,12 +31,16 @@ const store_entity_1 = require("./modules/shop/entities/store.entity");
 const product_entity_1 = require("./modules/shop/entities/product.entity");
 const product_image_entity_1 = require("./modules/shop/entities/product-image.entity");
 const product_variant_entity_1 = require("./modules/shop/entities/product-variant.entity");
+const store_onboarding_entity_1 = require("./modules/shop/entities/store-onboarding.entity");
 const event_entity_1 = require("./modules/events/entities/event.entity");
 const event_guest_entity_1 = require("./modules/events/entities/event-guest.entity");
 const event_host_entity_1 = require("./modules/events/entities/event-host.entity");
 const event_vendor_entity_1 = require("./modules/events/entities/event-vendor.entity");
 const event_product_entity_1 = require("./modules/events/entities/event-product.entity");
 const event_registration_question_entity_1 = require("./modules/events/entities/event-registration-question.entity");
+const temp_code_entity_1 = require("./modules/auth/entities/temp-code.entity");
+const trusted_device_entity_1 = require("./modules/auth/entities/trusted-device.entity");
+const shared_module_1 = require("./shared/shared.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -47,10 +51,11 @@ exports.AppModule = AppModule = __decorate([
             typeorm_1.TypeOrmModule.forRoot({
                 type: 'postgres',
                 url: process.env.DATABASE_URL,
-                entities: [user_entity_1.User, email_verification_entity_1.EmailVerification, link_entity_1.Link, social_link_entity_1.SocialLink, collection_entity_1.Collection, form_entity_1.Form, form_field_entity_1.FormField, form_submission_entity_1.FormSubmission, store_entity_1.Store, product_entity_1.Product, product_image_entity_1.ProductImage, product_variant_entity_1.ProductVariant, event_entity_1.Event, event_guest_entity_1.EventGuest, event_host_entity_1.EventHost, event_vendor_entity_1.EventVendor, event_product_entity_1.EventProduct, event_registration_question_entity_1.EventRegistrationQuestion, event_registration_question_entity_1.EventGuestAnswer],
+                entities: [user_entity_1.User, email_verification_entity_1.EmailVerification, link_entity_1.Link, social_link_entity_1.SocialLink, collection_entity_1.Collection, form_entity_1.Form, form_field_entity_1.FormField, form_submission_entity_1.FormSubmission, store_entity_1.Store, product_entity_1.Product, product_image_entity_1.ProductImage, product_variant_entity_1.ProductVariant, store_onboarding_entity_1.StoreOnboarding, event_entity_1.Event, event_guest_entity_1.EventGuest, event_host_entity_1.EventHost, event_vendor_entity_1.EventVendor, event_product_entity_1.EventProduct, event_registration_question_entity_1.EventRegistrationQuestion, event_registration_question_entity_1.EventGuestAnswer, temp_code_entity_1.TempCode, trusted_device_entity_1.TrustedDevice],
                 synchronize: true,
                 logging: process.env.NODE_ENV === 'development',
             }),
+            shared_module_1.SharedModule,
             users_module_1.UsersModule,
             auth_module_1.AuthModule,
             links_module_1.LinksModule,

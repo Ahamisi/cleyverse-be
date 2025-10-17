@@ -29,6 +29,7 @@ export declare class User extends BaseEntity {
     profileTitle: string;
     bio: string;
     profileImageUrl: string;
+    profileImageGradient: string;
     hasCompletedOnboarding: boolean;
     onboardingStep: number;
     isEmailVerified: boolean;

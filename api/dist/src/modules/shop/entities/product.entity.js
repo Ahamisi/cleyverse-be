@@ -86,7 +86,7 @@ __decorate([
     __metadata("design:type", Object)
 ], Product.prototype, "description", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'varchar', length: 200, unique: true }),
+    (0, typeorm_1.Column)({ type: 'varchar', length: 200 }),
     __metadata("design:type", String)
 ], Product.prototype, "handle", void 0);
 __decorate([
@@ -185,6 +185,7 @@ exports.Product = Product = __decorate([
     (0, typeorm_1.Entity)('products'),
     (0, typeorm_1.Index)(['storeId', 'status']),
     (0, typeorm_1.Index)(['storeId', 'createdAt']),
-    (0, typeorm_1.Index)(['title'])
+    (0, typeorm_1.Index)(['title']),
+    (0, typeorm_1.Index)(['storeId', 'handle'], { unique: true })
 ], Product);
 //# sourceMappingURL=product.entity.js.map

@@ -11,10 +11,12 @@ import {
   UpdateMediaDto,
   CustomizeLinkDto,
   ArchiveLinkDto,
-  ShareLinkDto
+  ShareLinkDto,
+  TrackClickDto
 } from '../dto/link.dto';
 import { LinkType } from '../entities/link.entity';
 import { MediaProcessorService } from '../../../shared/services/media-processor.service';
+import * as platformsData from '../../../config/platforms.json';
 
 @Controller('links')
 export class LinksController {
@@ -92,10 +94,62 @@ export class LinksController {
     };
   }
 
+  // 🆕 SUPPORTED PLATFORMS ENDPOINT
+  @Get('supported-platforms')
+  async getSupportedPlatforms(@Query('category') category?: string, @Query('search') search?: string) {
+    let platforms = platformsData.platforms;
+
+    // Filter by category if provided
+    if (category) {
+      platforms = platforms.filter(platform => platform.category === category);
+    }
+
+    // Filter by search term if provided
+    if (search) {
+      const searchLower = search.toLowerCase();
+      platforms = platforms.filter(platform => 
+        platform.name.toLowerCase().includes(searchLower) ||
+        platform.description.toLowerCase().includes(searchLower) ||
+        platform.domain.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Group by category for better organization
+    const groupedPlatforms = platforms.reduce((acc, platform) => {
+      if (!acc[platform.category]) {
+        acc[platform.category] = [];
+      }
+      acc[platform.category].push(platform);
+      return acc;
+    }, {} as Record<string, any[]>);
+
+    return {
+      message: 'Supported platforms retrieved successfully',
+      platforms: groupedPlatforms,
+      total: platforms.length,
+      categories: Object.keys(groupedPlatforms),
+      iconBaseUrl: '/icons', // Frontend will use this to construct icon paths
+      namingConvention: {
+        format: '{category}/{id}.svg',
+        examples: ['social/instagram.svg', 'media/spotify.svg', 'commerce/shopify.svg'],
+        note: 'All icons should be lowercase with hyphens for multi-word names'
+      }
+    };
+  }
+
   @Get('analytics')
   @UseGuards(JwtAuthGuard)
   async getLinkAnalytics(@Request() req, @Query('linkId') linkId?: string) {
     const analytics = await this.linkService.getLinkAnalytics(req.user.userId, linkId);
+    return {
+      message: 'Analytics retrieved successfully',
+      analytics
+    };
+  }
+
+  @Get(':id/analytics/public')
+  async getPublicLinkAnalytics(@Param('id') id: string) {
+    const analytics = await this.linkService.getPublicLinkAnalytics(id);
     return {
       message: 'Analytics retrieved successfully',
       analytics
@@ -153,12 +207,13 @@ export class LinksController {
   }
 
   @Post(':id/click')
-  async incrementClickCount(@Param('id') id: string) {
-    // This endpoint might be called from public link access
+  async trackClick(@Param('id') id: string, @Body() trackClickDto: TrackClickDto) {
+    // This endpoint is called from public link access
     // Consider adding rate limiting in production
-    await this.linkService.incrementClickCount(id);
+    const clickId = await this.linkService.trackClick(id, trackClickDto);
     return {
-      message: 'Click recorded successfully'
+      message: 'Click recorded successfully',
+      clickId
     };
   }
 

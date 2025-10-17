@@ -1,5 +1,10 @@
 import { LinkType, LinkLayout, LinkStatus, LinkLockType, MediaType } from '../entities/link.entity';
 import { SocialPlatform, SocialIconPosition } from '../entities/social-link.entity';
+export declare class TrackClickDto {
+    userAgent?: string;
+    ipAddress?: string;
+    referrer?: string;
+}
 export declare class CreateLinkDto {
     title: string;
     url: string;

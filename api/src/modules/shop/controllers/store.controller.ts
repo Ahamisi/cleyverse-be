@@ -1,17 +1,42 @@
 import { Controller, Post, Body, Get, Put, Delete, Param, UseGuards, Request, Query } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { StoreService } from '../services/store.service';
+import { StoreOnboardingService } from '../services/store-onboarding.service';
 import { CreateStoreDto, UpdateStoreDto, UpdateStoreStatusDto } from '../dto/store.dto';
+import { TrackClickDto } from '../../links/dto/link.dto';
 
 @Controller('stores')
 export class StoreController {
-  constructor(private readonly storeService: StoreService) {}
+  constructor(
+    private readonly storeService: StoreService,
+    private readonly onboardingService: StoreOnboardingService
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard)
   async create(@Request() req, @Body() createStoreDto: CreateStoreDto) {
+    // Check if user has onboarding data to use
+    let onboardingData: any = null;
+    try {
+      const onboardingStatus = await this.onboardingService.getOnboardingStatus(req.user.userId);
+      if (onboardingStatus.isCompleted) {
+        onboardingData = {
+          businessType: onboardingStatus.businessType,
+          salesChannels: onboardingStatus.salesChannels,
+          productTypes: onboardingStatus.productTypes
+        };
+      }
+    } catch (error) {
+      // No onboarding data - that's fine, user can create store directly
+    }
+
     const store = await this.storeService.createStore(req.user.userId, createStoreDto);
-    return { message: 'Store created successfully', store };
+    
+    return { 
+      message: 'Store created successfully', 
+      store,
+      onboardingData // Include onboarding data if available
+    };
   }
 
   @Get()
@@ -54,6 +79,26 @@ export class StoreController {
     return { message: 'Store analytics retrieved successfully', analytics };
   }
 
+  @Get('onboarding/status')
+  @UseGuards(JwtAuthGuard)
+  async getOnboardingStatus(@Request() req) {
+    try {
+      const status = await this.onboardingService.getOnboardingStatus(req.user.userId);
+      return {
+        message: 'Onboarding status retrieved successfully',
+        onboarding: status,
+        hasOnboarding: true
+      };
+    } catch (error) {
+      return {
+        message: 'No onboarding session found',
+        onboarding: null,
+        hasOnboarding: false,
+        canStartOnboarding: true
+      };
+    }
+  }
+
   @Get('check-url/:storeUrl')
   async checkUrlAvailability(@Param('storeUrl') storeUrl: string) {
     const isAvailable = await this.storeService.checkStoreUrlAvailability(storeUrl);
@@ -65,11 +110,6 @@ export class StoreController {
     };
   }
 
-  @Get('public/:storeUrl')
-  async getPublicStore(@Param('storeUrl') storeUrl: string) {
-    const store = await this.storeService.getPublicStore(storeUrl);
-    return { message: 'Public store retrieved successfully', store };
-  }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)
@@ -127,4 +167,56 @@ export class StoreController {
     const store = await this.storeService.unsuspendStore(id);
     return { message: 'Store unsuspended successfully', store };
   }
-}
+
+  // ==================== PUBLIC ENDPOINTS ====================
+
+  @Get('public/:storeUrl')
+  async getPublicStore(@Param('storeUrl') storeUrl: string) {
+    return this.storeService.getPublicStore(storeUrl);
+  }
+
+  @Get('public/:storeUrl/products')
+  async getPublicStoreProducts(
+    @Param('storeUrl') storeUrl: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+    @Query('search') search?: string,
+    @Query('category') category?: string,
+    @Query('minPrice') minPrice?: number,
+    @Query('maxPrice') maxPrice?: number,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: string
+  ) {
+    return this.storeService.getPublicStoreProducts(storeUrl, {
+      page: page || 1,
+      limit: limit || 20,
+      search,
+      category,
+      minPrice,
+      maxPrice,
+      sortBy: sortBy || 'createdAt',
+      sortOrder: sortOrder || 'DESC'
+    });
+  }
+
+         @Get('public/:storeUrl/products/:productHandle')
+         async getPublicProduct(
+           @Param('storeUrl') storeUrl: string,
+           @Param('productHandle') productHandle: string
+         ) {
+           return this.storeService.getPublicProduct(storeUrl, productHandle);
+         }
+
+         @Post('public/:storeUrl/products/:productHandle/view')
+         async trackProductView(
+           @Param('storeUrl') storeUrl: string,
+           @Param('productHandle') productHandle: string,
+           @Body() trackClickDto: TrackClickDto
+         ) {
+           const viewId = await this.storeService.trackProductView(storeUrl, productHandle, trackClickDto);
+           return {
+             message: 'View recorded successfully',
+             viewId
+           };
+         }
+       }

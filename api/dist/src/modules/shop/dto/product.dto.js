@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PublishProductDto = exports.UpdateProductStatusDto = exports.UpdateProductDto = exports.CreateProductDto = exports.CreateProductVariantDto = exports.CreateProductImageDto = void 0;
+exports.PublishProductDto = exports.UpdateProductStatusDto = exports.UpdateProductDto = exports.CreateProductDto = exports.VariantOptionDto = exports.CreateProductVariantDto = exports.CreateProductImageDto = void 0;
 const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
 const product_entity_1 = require("../entities/product.entity");
@@ -48,6 +48,8 @@ class CreateProductVariantDto {
     price;
     compareAtPrice;
     costPerItem;
+    isActive;
+    displayOrder;
     inventoryQuantity;
     option1Name;
     option1Value;
@@ -77,22 +79,36 @@ __decorate([
     __metadata("design:type", String)
 ], CreateProductVariantDto.prototype, "barcode", void 0);
 __decorate([
+    (0, class_transformer_1.Transform)(({ value }) => typeof value === 'string' ? parseFloat(value) : value),
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.Min)(0),
     __metadata("design:type", Number)
 ], CreateProductVariantDto.prototype, "price", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(({ value }) => typeof value === 'string' ? parseFloat(value) : value),
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.Min)(0),
     __metadata("design:type", Number)
 ], CreateProductVariantDto.prototype, "compareAtPrice", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(({ value }) => typeof value === 'string' ? parseFloat(value) : value),
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.Min)(0),
     __metadata("design:type", Number)
 ], CreateProductVariantDto.prototype, "costPerItem", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], CreateProductVariantDto.prototype, "isActive", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], CreateProductVariantDto.prototype, "displayOrder", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsNumber)(),
@@ -147,10 +163,25 @@ __decorate([
     (0, class_validator_1.MaxLength)(10),
     __metadata("design:type", String)
 ], CreateProductVariantDto.prototype, "weightUnit", void 0);
+class VariantOptionDto {
+    name;
+    values;
+}
+exports.VariantOptionDto = VariantOptionDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], VariantOptionDto.prototype, "name", void 0);
+__decorate([
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsString)({ each: true }),
+    __metadata("design:type", Array)
+], VariantOptionDto.prototype, "values", void 0);
 class CreateProductDto {
     title;
     description;
     type;
+    status;
     price;
     compareAtPrice;
     costPerItem;
@@ -168,6 +199,7 @@ class CreateProductDto {
     tags;
     images;
     variants;
+    variantOptions;
 }
 exports.CreateProductDto = CreateProductDto;
 __decorate([
@@ -187,18 +219,26 @@ __decorate([
 ], CreateProductDto.prototype, "type", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateProductDto.prototype, "status", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(({ value }) => typeof value === 'string' ? parseFloat(value) : value),
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.Min)(0),
     __metadata("design:type", Number)
 ], CreateProductDto.prototype, "price", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(({ value }) => typeof value === 'string' ? parseFloat(value) : value),
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.Min)(0),
     __metadata("design:type", Number)
 ], CreateProductDto.prototype, "compareAtPrice", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(({ value }) => typeof value === 'string' ? parseFloat(value) : value),
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.Min)(0),
     __metadata("design:type", Number)
@@ -285,6 +325,13 @@ __decorate([
     (0, class_transformer_1.Type)(() => CreateProductVariantDto),
     __metadata("design:type", Array)
 ], CreateProductDto.prototype, "variants", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.ValidateNested)({ each: true }),
+    (0, class_transformer_1.Type)(() => VariantOptionDto),
+    __metadata("design:type", Array)
+], CreateProductDto.prototype, "variantOptions", void 0);
 class UpdateProductDto {
     title;
     description;

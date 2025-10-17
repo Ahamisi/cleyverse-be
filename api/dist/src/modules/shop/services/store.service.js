@@ -17,10 +17,13 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const store_entity_1 = require("../entities/store.entity");
+const product_service_1 = require("./product.service");
 let StoreService = class StoreService {
     storeRepository;
-    constructor(storeRepository) {
+    productService;
+    constructor(storeRepository, productService) {
         this.storeRepository = storeRepository;
+        this.productService = productService;
     }
     async createStore(userId, createStoreDto) {
         const existingStore = await this.storeRepository.findOne({
@@ -57,20 +60,6 @@ let StoreService = class StoreService {
         });
         if (!store) {
             throw new common_1.NotFoundException('Store not found or does not belong to user');
-        }
-        return store;
-    }
-    async getPublicStore(storeUrl) {
-        const store = await this.storeRepository.findOne({
-            where: {
-                storeUrl,
-                status: store_entity_1.StoreStatus.ACTIVE,
-                isActive: true
-            },
-            relations: ['products']
-        });
-        if (!store) {
-            throw new common_1.NotFoundException('Store not found or not available');
         }
         return store;
     }
@@ -198,11 +187,106 @@ let StoreService = class StoreService {
             }
         };
     }
+    async getPublicStore(storeUrl) {
+        const store = await this.storeRepository.findOne({
+            where: { storeUrl, isActive: true },
+            relations: ['user'],
+            select: [
+                'id', 'name', 'description', 'storeUrl', 'logoUrl', 'bannerUrl',
+                'currency', 'isActive', 'status', 'totalProducts', 'createdAt'
+            ]
+        });
+        if (!store || store.status !== store_entity_1.StoreStatus.ACTIVE) {
+            return {
+                message: 'Store not found or not active',
+                store: null,
+                owner: null,
+                exists: false
+            };
+        }
+        return {
+            message: 'Store retrieved successfully',
+            store: {
+                id: store.id,
+                name: store.name,
+                description: store.description,
+                storeUrl: store.storeUrl,
+                logoUrl: store.logoUrl,
+                bannerUrl: store.bannerUrl,
+                currency: store.currency,
+                isActive: store.isActive,
+                totalProducts: store.totalProducts,
+                createdAt: store.createdAt
+            },
+            owner: {
+                id: store.user.id,
+                username: store.user.username,
+                firstName: store.user.firstName,
+                lastName: store.user.lastName,
+                profileImageUrl: store.user.profileImageUrl
+            },
+            exists: true
+        };
+    }
+    async getPublicStoreProducts(storeUrl, options) {
+        const store = await this.storeRepository.findOne({
+            where: { storeUrl, isActive: true }
+        });
+        if (!store || store.status !== store_entity_1.StoreStatus.ACTIVE) {
+            return {
+                message: 'Store not found or not active',
+                products: [],
+                pagination: {
+                    total: 0,
+                    page: options.page,
+                    limit: options.limit,
+                    totalPages: 0,
+                    hasNext: false,
+                    hasPrev: false
+                },
+                exists: false
+            };
+        }
+        const result = await this.productService.getPublicStoreProducts(store.id, options);
+        return {
+            ...result,
+            exists: true
+        };
+    }
+    async getPublicProduct(storeUrl, productHandle) {
+        const store = await this.storeRepository.findOne({
+            where: { storeUrl, isActive: true }
+        });
+        if (!store || store.status !== store_entity_1.StoreStatus.ACTIVE) {
+            return {
+                message: 'Store not found or not active',
+                product: null,
+                store: null,
+                exists: false
+            };
+        }
+        const result = await this.productService.getPublicProduct(store.id, productHandle);
+        return {
+            ...result,
+            exists: true
+        };
+    }
+    async trackProductView(storeUrl, productHandle, trackClickDto) {
+        const store = await this.storeRepository.findOne({
+            where: { storeUrl, isActive: true }
+        });
+        if (!store || store.status !== store_entity_1.StoreStatus.ACTIVE) {
+            throw new common_1.NotFoundException('Store not found or not active');
+        }
+        return this.productService.trackProductView(store.id, productHandle, trackClickDto);
+    }
 };
 exports.StoreService = StoreService;
 exports.StoreService = StoreService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(store_entity_1.Store)),
-    __metadata("design:paramtypes", [typeorm_2.Repository])
+    __param(1, (0, common_1.Inject)((0, common_1.forwardRef)(() => product_service_1.ProductService))),
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        product_service_1.ProductService])
 ], StoreService);
 //# sourceMappingURL=store.service.js.map

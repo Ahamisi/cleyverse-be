@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { SocialLinkService } from '../services/social-link.service';
-import { CreateSocialLinkDto, UpdateSocialLinkDto, UpdateSocialIconSettingsDto } from '../dto/link.dto';
+import { CreateSocialLinkDto, UpdateSocialLinkDto, UpdateSocialIconSettingsDto, ReorderLinksDto, TrackClickDto } from '../dto/link.dto';
 import { SocialPlatform } from '../entities/social-link.entity';
 
 @Controller('social-links')
@@ -121,8 +121,8 @@ export class SocialLinksController {
 
   @Put('reorder')
   @UseGuards(JwtAuthGuard)
-  async reorderSocialLinks(@Request() req, @Body() body: { linkIds: string[] }) {
-    const socialLinks = await this.socialLinkService.reorderSocialLinks(req.user.userId, body.linkIds);
+  async reorderSocialLinks(@Request() req, @Body() reorderDto: ReorderLinksDto) {
+    const socialLinks = await this.socialLinkService.reorderSocialLinks(req.user.userId, reorderDto.linkIds);
     return {
       message: 'Social links reordered successfully',
       socialLinks
@@ -130,12 +130,13 @@ export class SocialLinksController {
   }
 
   @Post(':id/click')
-  async incrementClickCount(@Param('id') id: string) {
-    // This endpoint might be called from public link access
+  async trackClick(@Param('id') id: string, @Body() trackClickDto: TrackClickDto) {
+    // This endpoint is called from public link access
     // Consider adding rate limiting in production
-    await this.socialLinkService.incrementClickCount(id);
+    const clickId = await this.socialLinkService.trackClick(id, trackClickDto);
     return {
-      message: 'Social link click recorded successfully'
+      message: 'Click recorded successfully',
+      clickId
     };
   }
 }

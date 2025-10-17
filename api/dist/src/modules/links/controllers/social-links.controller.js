@@ -96,17 +96,18 @@ let SocialLinksController = class SocialLinksController {
             socialLinks
         };
     }
-    async reorderSocialLinks(req, body) {
-        const socialLinks = await this.socialLinkService.reorderSocialLinks(req.user.userId, body.linkIds);
+    async reorderSocialLinks(req, reorderDto) {
+        const socialLinks = await this.socialLinkService.reorderSocialLinks(req.user.userId, reorderDto.linkIds);
         return {
             message: 'Social links reordered successfully',
             socialLinks
         };
     }
-    async incrementClickCount(id) {
-        await this.socialLinkService.incrementClickCount(id);
+    async trackClick(id, trackClickDto) {
+        const clickId = await this.socialLinkService.trackClick(id, trackClickDto);
         return {
-            message: 'Social link click recorded successfully'
+            message: 'Click recorded successfully',
+            clickId
         };
     }
 };
@@ -196,16 +197,17 @@ __decorate([
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:paramtypes", [Object, link_dto_1.ReorderLinksDto]),
     __metadata("design:returntype", Promise)
 ], SocialLinksController.prototype, "reorderSocialLinks", null);
 __decorate([
     (0, common_1.Post)(':id/click'),
     __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, link_dto_1.TrackClickDto]),
     __metadata("design:returntype", Promise)
-], SocialLinksController.prototype, "incrementClickCount", null);
+], SocialLinksController.prototype, "trackClick", null);
 exports.SocialLinksController = SocialLinksController = __decorate([
     (0, common_1.Controller)('social-links'),
     __metadata("design:paramtypes", [social_link_service_1.SocialLinkService])
