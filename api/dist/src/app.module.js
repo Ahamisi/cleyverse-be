@@ -19,8 +19,11 @@ const collections_module_1 = require("./modules/collections/collections.module")
 const forms_module_1 = require("./modules/forms/forms.module");
 const shop_module_1 = require("./modules/shop/shop.module");
 const events_module_1 = require("./modules/events/events.module");
+const payments_module_1 = require("./modules/payments/payments.module");
 const user_entity_1 = require("./modules/users/entities/user.entity");
 const email_verification_entity_1 = require("./modules/users/entities/email-verification.entity");
+const creator_settings_entity_1 = require("./modules/users/entities/creator-settings.entity");
+const creator_payout_settings_entity_1 = require("./modules/users/entities/creator-payout-settings.entity");
 const link_entity_1 = require("./modules/links/entities/link.entity");
 const social_link_entity_1 = require("./modules/links/entities/social-link.entity");
 const collection_entity_1 = require("./modules/collections/entities/collection.entity");
@@ -38,6 +41,14 @@ const event_host_entity_1 = require("./modules/events/entities/event-host.entity
 const event_vendor_entity_1 = require("./modules/events/entities/event-vendor.entity");
 const event_product_entity_1 = require("./modules/events/entities/event-product.entity");
 const event_registration_question_entity_1 = require("./modules/events/entities/event-registration-question.entity");
+const payment_entity_1 = require("./modules/payments/entities/payment.entity");
+const invoice_entity_1 = require("./modules/payments/entities/invoice.entity");
+const transaction_entity_1 = require("./modules/payments/entities/transaction.entity");
+const order_entity_1 = require("./modules/shop/entities/order.entity");
+const order_item_entity_1 = require("./modules/shop/entities/order-item.entity");
+const store_balance_entity_1 = require("./modules/shop/entities/store-balance.entity");
+const digital_product_entity_1 = require("./modules/shop/entities/digital-product.entity");
+const digital_access_entity_1 = require("./modules/shop/entities/digital-access.entity");
 const temp_code_entity_1 = require("./modules/auth/entities/temp-code.entity");
 const trusted_device_entity_1 = require("./modules/auth/entities/trusted-device.entity");
 const shared_module_1 = require("./shared/shared.module");
@@ -51,7 +62,7 @@ exports.AppModule = AppModule = __decorate([
             typeorm_1.TypeOrmModule.forRoot({
                 type: 'postgres',
                 url: process.env.DATABASE_URL,
-                entities: [user_entity_1.User, email_verification_entity_1.EmailVerification, link_entity_1.Link, social_link_entity_1.SocialLink, collection_entity_1.Collection, form_entity_1.Form, form_field_entity_1.FormField, form_submission_entity_1.FormSubmission, store_entity_1.Store, product_entity_1.Product, product_image_entity_1.ProductImage, product_variant_entity_1.ProductVariant, store_onboarding_entity_1.StoreOnboarding, event_entity_1.Event, event_guest_entity_1.EventGuest, event_host_entity_1.EventHost, event_vendor_entity_1.EventVendor, event_product_entity_1.EventProduct, event_registration_question_entity_1.EventRegistrationQuestion, event_registration_question_entity_1.EventGuestAnswer, temp_code_entity_1.TempCode, trusted_device_entity_1.TrustedDevice],
+                entities: [user_entity_1.User, email_verification_entity_1.EmailVerification, creator_settings_entity_1.CreatorSettings, creator_payout_settings_entity_1.CreatorPayoutSettings, link_entity_1.Link, social_link_entity_1.SocialLink, collection_entity_1.Collection, form_entity_1.Form, form_field_entity_1.FormField, form_submission_entity_1.FormSubmission, store_entity_1.Store, product_entity_1.Product, product_image_entity_1.ProductImage, product_variant_entity_1.ProductVariant, store_onboarding_entity_1.StoreOnboarding, order_entity_1.Order, order_item_entity_1.OrderItem, store_balance_entity_1.StoreBalance, digital_product_entity_1.DigitalProduct, digital_access_entity_1.DigitalAccess, event_entity_1.Event, event_guest_entity_1.EventGuest, event_host_entity_1.EventHost, event_vendor_entity_1.EventVendor, event_product_entity_1.EventProduct, event_registration_question_entity_1.EventRegistrationQuestion, event_registration_question_entity_1.EventGuestAnswer, payment_entity_1.Payment, invoice_entity_1.Invoice, transaction_entity_1.Transaction, temp_code_entity_1.TempCode, trusted_device_entity_1.TrustedDevice],
                 synchronize: true,
                 logging: process.env.NODE_ENV === 'development',
             }),
@@ -63,6 +74,7 @@ exports.AppModule = AppModule = __decorate([
             forms_module_1.FormsModule,
             shop_module_1.ShopModule,
             events_module_1.EventsModule,
+            payments_module_1.PaymentsModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

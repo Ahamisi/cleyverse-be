@@ -103,7 +103,8 @@ let EmailVerificationService = class EmailVerificationService {
             token,
         });
         await this.emailVerificationRepository.save(verification);
-        await this.emailService.sendVerificationEmail(user.email, token);
+        const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+        await this.emailService.sendVerificationEmail(user.email, user.username, verificationUrl);
         return {
             message: 'Verification email sent successfully'
         };

@@ -2,6 +2,7 @@ import { BaseEntity } from '../../../common/base/base.entity';
 import { Store } from './store.entity';
 import { ProductImage } from './product-image.entity';
 import { ProductVariant } from './product-variant.entity';
+import { DigitalProduct } from './digital-product.entity';
 export declare enum ProductStatus {
     DRAFT = "draft",
     ACTIVE = "active",
@@ -17,6 +18,7 @@ export declare class Product extends BaseEntity {
     store: Store;
     images: ProductImage[];
     variants: ProductVariant[];
+    digitalProduct: DigitalProduct;
     title: string;
     description: string | null;
     handle: string;

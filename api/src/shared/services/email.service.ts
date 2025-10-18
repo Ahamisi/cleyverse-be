@@ -1,63 +1,57 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+
+export interface EmailData {
+  to: string;
+  subject: string;
+  template: string;
+  data: Record<string, any>;
+}
 
 @Injectable()
 export class EmailService {
-  private readonly logger = new Logger(EmailService.name);
-
-  async sendVerificationEmail(to: string, token: string): Promise<void> {
-    const verificationLink = `http://localhost:3000/users/verify-email?token=${token}`;
-    this.logger.log(`Sending verification email to ${to} with link: ${verificationLink}`);
-    // In a real application, integrate with an email service like SendGrid, Mailgun, etc.
-    // Example: await this.mailService.send({ to, subject, html });
-  }
-
-  async sendWelcomeEmail(to: string, username: string): Promise<void> {
-    this.logger.log(`Sending welcome email to ${to}. Welcome, ${username}!`);
-    // In a real application, integrate with an email service.
-  }
-
-  async sendTempCodeEmail(to: string, username: string, code: string, reason: string): Promise<void> {
-    const reasonMessages = {
-      new_device: 'logging in from a new device',
-      forgot_password: 'resetting your password',
-      onboarding: 'completing your registration'
-    };
-
-    const reasonMessage = reasonMessages[reason] || 'logging in';
-
-    this.logger.log(`
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      📧 TEMPORARY LOGIN CODE EMAIL
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      To: ${to}
-      Username: ${username}
-      Reason: ${reasonMessage}
-      
-      Your temporary login code is:
-      
-      ╔═══════════════╗
-      ║   ${code}   ║
-      ╚═══════════════╝
-      
-      This code will expire in 15 minutes.
-      
-      If you didn't request this code, please ignore this email.
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    `);
+  async sendEmail(emailData: EmailData): Promise<void> {
+    // This is a placeholder implementation
+    // In production, you would integrate with an email service like:
+    // - SendGrid
+    // - AWS SES
+    // - Mailgun
+    // - Nodemailer with SMTP
     
-    // In a real application, integrate with an email service like SendGrid
-    // Example email template:
-    // await this.mailService.send({
-    //   to,
-    //   subject: `Your Cleyverse login code: ${code}`,
-    //   html: `
-    //     <h2>Hello ${username}!</h2>
-    //     <p>You're ${reasonMessage}.</p>
-    //     <p>Your temporary login code is:</p>
-    //     <h1 style="font-size: 32px; letter-spacing: 8px;">${code}</h1>
-    //     <p>This code will expire in 15 minutes.</p>
-    //     <p>If you didn't request this code, please ignore this email.</p>
-    //   `
-    // });
+    console.log('Sending email:', {
+      to: emailData.to,
+      subject: emailData.subject,
+      template: emailData.template,
+      data: emailData.data
+    });
+
+    // For now, just log the email data
+    // In production, implement actual email sending logic here
+  }
+
+  async sendTempCodeEmail(email: string, username: string, code: string, reason: string): Promise<void> {
+    await this.sendEmail({
+      to: email,
+      subject: `Your temporary access code - ${reason}`,
+      template: 'temp-code',
+      data: { username, code, reason }
+    });
+  }
+
+  async sendWelcomeEmail(email: string, username: string): Promise<void> {
+    await this.sendEmail({
+      to: email,
+      subject: 'Welcome to Cleyverse!',
+      template: 'welcome',
+      data: { username }
+    });
+  }
+
+  async sendVerificationEmail(email: string, username: string, verificationUrl: string): Promise<void> {
+    await this.sendEmail({
+      to: email,
+      subject: 'Verify your email address',
+      template: 'verification',
+      data: { username, verificationUrl }
+    });
   }
 }

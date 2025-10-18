@@ -234,7 +234,8 @@ let UserService = class UserService extends base_service_1.BaseService {
         });
         await this.emailVerificationRepository.save(verification);
         const user = await this.findById(userId);
-        await this.emailService.sendVerificationEmail(user.email, token);
+        const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+        await this.emailService.sendVerificationEmail(user.email, user.username, verificationUrl);
     }
     calculateOnboardingStep(user) {
         let step = 1;

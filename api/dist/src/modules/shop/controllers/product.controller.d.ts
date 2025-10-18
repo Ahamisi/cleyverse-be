@@ -1,6 +1,7 @@
 import { ProductService } from '../services/product.service';
 import { CreateProductDto, UpdateProductDto, UpdateProductStatusDto, PublishProductDto } from '../dto/product.dto';
 import { SearchProductsDto, BulkUpdateTagsDto, BulkUpdatePriceDto } from '../dto/search.dto';
+import { CreateDigitalProductDto, UpdateDigitalProductDto } from '../dto/digital-product.dto';
 export declare class ProductController {
     private readonly productService;
     constructor(productService: ProductService);
@@ -61,7 +62,32 @@ export declare class ProductController {
         message: string;
         product: import("../entities/product.entity").Product;
     }>;
+    updateVariant(req: any, storeId: string, id: string, variantId: string, updateVariantDto: any): Promise<{
+        message: string;
+        variant: import("../entities/product-variant.entity").ProductVariant;
+    }>;
     remove(req: any, storeId: string, id: string): Promise<{
+        message: string;
+    }>;
+    uploadDigitalFile(storeId: string, productId: string, file: any, createDto: CreateDigitalProductDto, req: any): Promise<{
+        digitalProduct: import("../entities/digital-product.entity").DigitalProduct;
+        message: string;
+    }>;
+    getDigitalProduct(storeId: string, productId: string, req: any): Promise<{
+        message: string;
+        digitalProduct: import("../entities/digital-product.entity").DigitalProduct;
+    }>;
+    updateDigitalProduct(storeId: string, productId: string, updateDto: UpdateDigitalProductDto, req: any): Promise<{
+        message: string;
+        digitalProduct: import("../entities/digital-product.entity").DigitalProduct;
+    }>;
+    getDigitalProductAnalytics(storeId: string, productId: string, req: any): Promise<{
+        message: string;
+        analytics: any;
+    }>;
+    getDigitalProductAccess(storeId: string, productId: string, page: number | undefined, limit: number | undefined, req: any): Promise<{
+        accessRecords: any[];
+        pagination: any;
         message: string;
     }>;
 }

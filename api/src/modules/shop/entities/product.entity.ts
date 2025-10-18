@@ -1,8 +1,9 @@
-import { Entity, Column, ManyToOne, OneToMany, JoinColumn, Index } from 'typeorm';
+import { Entity, Column, ManyToOne, OneToMany, OneToOne, JoinColumn, Index } from 'typeorm';
 import { BaseEntity } from '../../../common/base/base.entity';
 import { Store } from './store.entity';
 import { ProductImage } from './product-image.entity';
 import { ProductVariant } from './product-variant.entity';
+import { DigitalProduct } from './digital-product.entity';
 
 export enum ProductStatus {
   DRAFT = 'draft',
@@ -34,6 +35,9 @@ export class Product extends BaseEntity {
 
   @OneToMany(() => ProductVariant, variant => variant.product, { cascade: true })
   variants: ProductVariant[];
+
+  @OneToOne(() => DigitalProduct, digitalProduct => digitalProduct.product, { cascade: true })
+  digitalProduct: DigitalProduct;
 
   @Column({ type: 'varchar', length: 200 })
   title: string;

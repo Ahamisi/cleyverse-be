@@ -5,49 +5,45 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-var EmailService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EmailService = void 0;
 const common_1 = require("@nestjs/common");
-let EmailService = EmailService_1 = class EmailService {
-    logger = new common_1.Logger(EmailService_1.name);
-    async sendVerificationEmail(to, token) {
-        const verificationLink = `http://localhost:3000/users/verify-email?token=${token}`;
-        this.logger.log(`Sending verification email to ${to} with link: ${verificationLink}`);
+let EmailService = class EmailService {
+    async sendEmail(emailData) {
+        console.log('Sending email:', {
+            to: emailData.to,
+            subject: emailData.subject,
+            template: emailData.template,
+            data: emailData.data
+        });
     }
-    async sendWelcomeEmail(to, username) {
-        this.logger.log(`Sending welcome email to ${to}. Welcome, ${username}!`);
+    async sendTempCodeEmail(email, username, code, reason) {
+        await this.sendEmail({
+            to: email,
+            subject: `Your temporary access code - ${reason}`,
+            template: 'temp-code',
+            data: { username, code, reason }
+        });
     }
-    async sendTempCodeEmail(to, username, code, reason) {
-        const reasonMessages = {
-            new_device: 'logging in from a new device',
-            forgot_password: 'resetting your password',
-            onboarding: 'completing your registration'
-        };
-        const reasonMessage = reasonMessages[reason] || 'logging in';
-        this.logger.log(`
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      📧 TEMPORARY LOGIN CODE EMAIL
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      To: ${to}
-      Username: ${username}
-      Reason: ${reasonMessage}
-      
-      Your temporary login code is:
-      
-      ╔═══════════════╗
-      ║   ${code}   ║
-      ╚═══════════════╝
-      
-      This code will expire in 15 minutes.
-      
-      If you didn't request this code, please ignore this email.
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    `);
+    async sendWelcomeEmail(email, username) {
+        await this.sendEmail({
+            to: email,
+            subject: 'Welcome to Cleyverse!',
+            template: 'welcome',
+            data: { username }
+        });
+    }
+    async sendVerificationEmail(email, username, verificationUrl) {
+        await this.sendEmail({
+            to: email,
+            subject: 'Verify your email address',
+            template: 'verification',
+            data: { username, verificationUrl }
+        });
     }
 };
 exports.EmailService = EmailService;
-exports.EmailService = EmailService = EmailService_1 = __decorate([
+exports.EmailService = EmailService = __decorate([
     (0, common_1.Injectable)()
 ], EmailService);
 //# sourceMappingURL=email.service.js.map

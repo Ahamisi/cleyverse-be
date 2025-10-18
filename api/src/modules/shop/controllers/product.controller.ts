@@ -1,8 +1,13 @@
-import { Controller, Post, Body, Get, Put, Delete, Param, UseGuards, Request, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, Put, Delete, Param, UseGuards, Request, Query, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { ProductService } from '../services/product.service';
 import { CreateProductDto, UpdateProductDto, UpdateProductStatusDto, PublishProductDto } from '../dto/product.dto';
 import { SearchProductsDto, BulkUpdateTagsDto, BulkUpdatePriceDto } from '../dto/search.dto';
+import { CreateDigitalProductDto, UpdateDigitalProductDto } from '../dto/digital-product.dto';
+import * as multer from 'multer';
+import * as path from 'path';
+import * as crypto from 'crypto';
 
 @Controller('stores/:storeId/products')
 export class ProductController {
@@ -92,11 +97,114 @@ export class ProductController {
     return { message: 'Product duplicated successfully', product };
   }
 
+  @Put(':id/variants/:variantId')
+  @UseGuards(JwtAuthGuard)
+  async updateVariant(@Request() req, @Param('storeId') storeId: string, @Param('id') id: string, @Param('variantId') variantId: string, @Body() updateVariantDto: any) {
+    const variant = await this.productService.updateProductVariant(req.user.userId, storeId, id, variantId, updateVariantDto);
+    return { message: 'Product variant updated successfully', variant };
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   async remove(@Request() req, @Param('storeId') storeId: string, @Param('id') id: string) {
     await this.productService.deleteProduct(req.user.userId, storeId, id);
     return { message: 'Product deleted successfully' };
+  }
+
+  // Digital Product Endpoints
+  @Post(':id/digital/upload')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('file', {
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        const uploadPath = path.join(process.env.DIGITAL_FILES_PATH || './uploads/digital');
+        cb(null, uploadPath);
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = crypto.randomBytes(16).toString('hex');
+        const ext = path.extname(file.originalname);
+        cb(null, `${uniqueSuffix}${ext}`);
+      }
+    }),
+    limits: {
+      fileSize: 100 * 1024 * 1024, // 100MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = [
+        'application/pdf',
+        'application/epub+zip',
+        'application/mobi',
+        'audio/mpeg',
+        'audio/wav',
+        'video/mp4',
+        'video/avi',
+        'application/zip',
+        'application/x-zip-compressed'
+      ];
+      
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('File type not allowed'), false);
+      }
+    }
+  }))
+  async uploadDigitalFile(
+    @Param('storeId') storeId: string,
+    @Param('id') productId: string,
+    @UploadedFile() file: any,
+    @Body() createDto: CreateDigitalProductDto,
+    @Request() req
+  ) {
+    const result = await this.productService.uploadDigitalFile(req.user.userId, storeId, productId, file, createDto);
+    return { message: 'Digital file uploaded successfully', ...result };
+  }
+
+  @Get(':id/digital')
+  @UseGuards(JwtAuthGuard)
+  async getDigitalProduct(
+    @Param('storeId') storeId: string,
+    @Param('id') productId: string,
+    @Request() req
+  ) {
+    const digitalProduct = await this.productService.getDigitalProduct(req.user.userId, storeId, productId);
+    return { message: 'Digital product retrieved successfully', digitalProduct };
+  }
+
+  @Put(':id/digital')
+  @UseGuards(JwtAuthGuard)
+  async updateDigitalProduct(
+    @Param('storeId') storeId: string,
+    @Param('id') productId: string,
+    @Body() updateDto: UpdateDigitalProductDto,
+    @Request() req
+  ) {
+    const digitalProduct = await this.productService.updateDigitalProduct(req.user.userId, storeId, productId, updateDto);
+    return { message: 'Digital product updated successfully', digitalProduct };
+  }
+
+  @Get(':id/digital/analytics')
+  @UseGuards(JwtAuthGuard)
+  async getDigitalProductAnalytics(
+    @Param('storeId') storeId: string,
+    @Param('id') productId: string,
+    @Request() req
+  ) {
+    const analytics = await this.productService.getDigitalProductAnalytics(req.user.userId, storeId, productId);
+    return { message: 'Digital product analytics retrieved successfully', analytics };
+  }
+
+  @Get(':id/digital/access')
+  @UseGuards(JwtAuthGuard)
+  async getDigitalProductAccess(
+    @Param('storeId') storeId: string,
+    @Param('id') productId: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+    @Request() req
+  ) {
+    const result = await this.productService.getDigitalProductAccess(req.user.userId, storeId, productId, page, limit);
+    return { message: 'Digital product access records retrieved successfully', ...result };
   }
 }
 

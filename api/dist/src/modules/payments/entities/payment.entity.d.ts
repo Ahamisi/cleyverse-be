@@ -1,0 +1,30 @@
+import { User } from '../../users/entities/user.entity';
+import { PaymentStatus, PaymentType, PaymentMethod, PlatformType } from '../../../config/payment.config';
+export { PaymentStatus, PaymentType, PaymentMethod, PlatformType };
+export declare class Payment {
+    id: string;
+    userId: string | null;
+    user: User | null;
+    amount: number;
+    currency: string;
+    status: PaymentStatus;
+    type: PaymentType;
+    method: PaymentMethod;
+    platform: PlatformType;
+    platformTransactionId: string;
+    processor: string;
+    description: string;
+    metadata: Record<string, any>;
+    platformFee: number;
+    processorFee: number;
+    netAmount: number;
+    failureReason: string | null;
+    processorResponse: Record<string, any>;
+    fraudScore: Record<string, any>;
+    riskLevel: string;
+    processedAt: Date | null;
+    failedAt: Date | null;
+    refundedAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+}

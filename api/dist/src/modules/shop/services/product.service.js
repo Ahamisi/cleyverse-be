@@ -1,10 +1,43 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
@@ -20,17 +53,28 @@ const product_entity_1 = require("../entities/product.entity");
 const product_image_entity_1 = require("../entities/product-image.entity");
 const product_variant_entity_1 = require("../entities/product-variant.entity");
 const store_entity_1 = require("../entities/store.entity");
+const digital_product_entity_1 = require("../entities/digital-product.entity");
+const digital_access_entity_1 = require("../entities/digital-access.entity");
 const search_dto_1 = require("../dto/search.dto");
+const digital_delivery_service_1 = require("./digital-delivery.service");
+const crypto = __importStar(require("crypto"));
+const path = __importStar(require("path"));
 let ProductService = class ProductService {
     productRepository;
     productImageRepository;
     productVariantRepository;
     storeRepository;
-    constructor(productRepository, productImageRepository, productVariantRepository, storeRepository) {
+    digitalProductRepository;
+    digitalAccessRepository;
+    digitalDeliveryService;
+    constructor(productRepository, productImageRepository, productVariantRepository, storeRepository, digitalProductRepository, digitalAccessRepository, digitalDeliveryService) {
         this.productRepository = productRepository;
         this.productImageRepository = productImageRepository;
         this.productVariantRepository = productVariantRepository;
         this.storeRepository = storeRepository;
+        this.digitalProductRepository = digitalProductRepository;
+        this.digitalAccessRepository = digitalAccessRepository;
+        this.digitalDeliveryService = digitalDeliveryService;
     }
     async createProduct(userId, storeId, createProductDto) {
         const store = await this.storeRepository.findOne({
@@ -704,6 +748,132 @@ let ProductService = class ProductService {
         const viewId = require('crypto').randomUUID();
         return viewId;
     }
+    async updateProductVariant(userId, storeId, productId, variantId, updateVariantDto) {
+        const store = await this.storeRepository.findOne({
+            where: { id: storeId, userId }
+        });
+        if (!store) {
+            throw new common_1.NotFoundException('Store not found or does not belong to user');
+        }
+        const product = await this.productRepository.findOne({
+            where: { id: productId, storeId }
+        });
+        if (!product) {
+            throw new common_1.NotFoundException('Product not found or does not belong to this store');
+        }
+        const variant = await this.productVariantRepository.findOne({
+            where: { id: variantId, productId }
+        });
+        if (!variant) {
+            throw new common_1.NotFoundException('Product variant not found');
+        }
+        Object.assign(variant, updateVariantDto);
+        return await this.productVariantRepository.save(variant);
+    }
+    async uploadDigitalFile(userId, storeId, productId, file, createDto) {
+        const product = await this.productRepository.findOne({
+            where: { id: productId, storeId, store: { userId } },
+            relations: ['store']
+        });
+        if (!product) {
+            throw new common_1.NotFoundException('Product not found or does not belong to user');
+        }
+        if (product.type !== 'digital') {
+            throw new common_1.BadRequestException('Product must be of type digital');
+        }
+        const existingDigitalProduct = await this.digitalProductRepository.findOne({
+            where: { productId }
+        });
+        if (existingDigitalProduct) {
+            throw new common_1.BadRequestException('Digital product already exists for this product');
+        }
+        const fileHash = crypto.createHash('sha256').update(file.buffer).digest('hex');
+        const digitalProduct = new digital_product_entity_1.DigitalProduct();
+        digitalProduct.productId = productId;
+        digitalProduct.digitalType = createDto.digitalType;
+        digitalProduct.accessControlType = createDto.accessControlType;
+        digitalProduct.fileName = file.originalname;
+        digitalProduct.filePath = file.filename;
+        digitalProduct.fileSize = file.size;
+        digitalProduct.fileType = path.extname(file.originalname);
+        digitalProduct.mimeType = file.mimetype;
+        digitalProduct.fileHash = fileHash;
+        digitalProduct.accessPassword = createDto.accessPassword || null;
+        digitalProduct.accessDurationHours = createDto.accessDurationHours || null;
+        digitalProduct.maxDownloads = createDto.maxDownloads;
+        digitalProduct.maxConcurrentUsers = createDto.maxConcurrentUsers;
+        digitalProduct.watermarkEnabled = createDto.watermarkEnabled;
+        digitalProduct.watermarkText = createDto.watermarkText || null;
+        digitalProduct.autoDeliver = createDto.autoDeliver;
+        digitalProduct.deliveryEmailTemplate = createDto.deliveryEmailTemplate || null;
+        digitalProduct.deliverySubject = createDto.deliverySubject || null;
+        digitalProduct.ipRestriction = createDto.ipRestriction;
+        digitalProduct.allowedIps = createDto.allowedIps || null;
+        digitalProduct.deviceFingerprinting = createDto.deviceFingerprinting;
+        digitalProduct.preventScreenshots = createDto.preventScreenshots;
+        digitalProduct.preventPrinting = createDto.preventPrinting;
+        digitalProduct.preventCopying = createDto.preventCopying;
+        digitalProduct.viewerType = createDto.viewerType;
+        digitalProduct.viewerConfig = createDto.viewerConfig || null;
+        const savedDigitalProduct = await this.digitalProductRepository.save(digitalProduct);
+        return { digitalProduct: savedDigitalProduct };
+    }
+    async getDigitalProduct(userId, storeId, productId) {
+        const digitalProduct = await this.digitalProductRepository.findOne({
+            where: {
+                productId,
+                product: {
+                    storeId,
+                    store: { userId }
+                }
+            },
+            relations: ['product', 'product.store']
+        });
+        if (!digitalProduct) {
+            throw new common_1.NotFoundException('Digital product not found');
+        }
+        return digitalProduct;
+    }
+    async updateDigitalProduct(userId, storeId, productId, updateDto) {
+        const digitalProduct = await this.getDigitalProduct(userId, storeId, productId);
+        Object.assign(digitalProduct, updateDto);
+        const updatedDigitalProduct = await this.digitalProductRepository.save(digitalProduct);
+        return updatedDigitalProduct;
+    }
+    async getDigitalProductAnalytics(userId, storeId, productId) {
+        const digitalProduct = await this.getDigitalProduct(userId, storeId, productId);
+        return await this.digitalDeliveryService.getAccessAnalytics(digitalProduct.id);
+    }
+    async getDigitalProductAccess(userId, storeId, productId, page = 1, limit = 20) {
+        const digitalProduct = await this.getDigitalProduct(userId, storeId, productId);
+        const [accessRecords, total] = await this.digitalAccessRepository.findAndCount({
+            where: { digitalProductId: digitalProduct.id },
+            order: { createdAt: 'DESC' },
+            skip: (page - 1) * limit,
+            take: limit,
+            relations: ['user', 'order']
+        });
+        return {
+            accessRecords: accessRecords.map(access => ({
+                id: access.id,
+                customerEmail: access.customerEmail,
+                customerName: access.customerName,
+                accessType: access.accessType,
+                status: access.status,
+                accessCount: access.accessCount,
+                downloadCount: access.downloadCount,
+                lastAccessedAt: access.lastAccessedAt,
+                expiresAt: access.expiresAt,
+                createdAt: access.createdAt
+            })),
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit)
+            }
+        };
+    }
 };
 exports.ProductService = ProductService;
 exports.ProductService = ProductService = __decorate([
@@ -712,9 +882,14 @@ exports.ProductService = ProductService = __decorate([
     __param(1, (0, typeorm_1.InjectRepository)(product_image_entity_1.ProductImage)),
     __param(2, (0, typeorm_1.InjectRepository)(product_variant_entity_1.ProductVariant)),
     __param(3, (0, typeorm_1.InjectRepository)(store_entity_1.Store)),
+    __param(4, (0, typeorm_1.InjectRepository)(digital_product_entity_1.DigitalProduct)),
+    __param(5, (0, typeorm_1.InjectRepository)(digital_access_entity_1.DigitalAccess)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
-        typeorm_2.Repository])
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        digital_delivery_service_1.DigitalDeliveryService])
 ], ProductService);
 //# sourceMappingURL=product.service.js.map

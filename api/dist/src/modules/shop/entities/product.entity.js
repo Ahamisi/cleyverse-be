@@ -15,6 +15,7 @@ const base_entity_1 = require("../../../common/base/base.entity");
 const store_entity_1 = require("./store.entity");
 const product_image_entity_1 = require("./product-image.entity");
 const product_variant_entity_1 = require("./product-variant.entity");
+const digital_product_entity_1 = require("./digital-product.entity");
 var ProductStatus;
 (function (ProductStatus) {
     ProductStatus["DRAFT"] = "draft";
@@ -32,6 +33,7 @@ let Product = class Product extends base_entity_1.BaseEntity {
     store;
     images;
     variants;
+    digitalProduct;
     title;
     description;
     handle;
@@ -77,6 +79,10 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => product_variant_entity_1.ProductVariant, variant => variant.product, { cascade: true }),
     __metadata("design:type", Array)
 ], Product.prototype, "variants", void 0);
+__decorate([
+    (0, typeorm_1.OneToOne)(() => digital_product_entity_1.DigitalProduct, digitalProduct => digitalProduct.product, { cascade: true }),
+    __metadata("design:type", digital_product_entity_1.DigitalProduct)
+], Product.prototype, "digitalProduct", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', length: 200 }),
     __metadata("design:type", String)

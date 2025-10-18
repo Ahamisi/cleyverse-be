@@ -5,9 +5,15 @@ import { Product, ProductStatus } from '../entities/product.entity';
 import { ProductImage } from '../entities/product-image.entity';
 import { ProductVariant } from '../entities/product-variant.entity';
 import { Store } from '../entities/store.entity';
+import { DigitalProduct } from '../entities/digital-product.entity';
+import { DigitalAccess } from '../entities/digital-access.entity';
 import { CreateProductDto, UpdateProductDto, UpdateProductStatusDto, PublishProductDto } from '../dto/product.dto';
 import { SearchProductsDto, ProductAvailability, BulkUpdateTagsDto, BulkUpdatePriceDto } from '../dto/search.dto';
+import { CreateDigitalProductDto, UpdateDigitalProductDto } from '../dto/digital-product.dto';
 import { TrackClickDto } from '../../links/dto/link.dto';
+import { DigitalDeliveryService } from './digital-delivery.service';
+import * as crypto from 'crypto';
+import * as path from 'path';
 
 @Injectable()
 export class ProductService {
@@ -20,6 +26,11 @@ export class ProductService {
     private readonly productVariantRepository: Repository<ProductVariant>,
     @InjectRepository(Store)
     private readonly storeRepository: Repository<Store>,
+    @InjectRepository(DigitalProduct)
+    private readonly digitalProductRepository: Repository<DigitalProduct>,
+    @InjectRepository(DigitalAccess)
+    private readonly digitalAccessRepository: Repository<DigitalAccess>,
+    private readonly digitalDeliveryService: DigitalDeliveryService,
   ) {}
 
   async createProduct(userId: string, storeId: string, createProductDto: CreateProductDto): Promise<Product> {
@@ -912,5 +923,184 @@ export class ProductService {
     // For now, we just return the view ID
     
     return viewId;
+  }
+
+  async updateProductVariant(userId: string, storeId: string, productId: string, variantId: string, updateVariantDto: any): Promise<ProductVariant> {
+    // Verify store belongs to user
+    const store = await this.storeRepository.findOne({
+      where: { id: storeId, userId }
+    });
+
+    if (!store) {
+      throw new NotFoundException('Store not found or does not belong to user');
+    }
+
+    // Verify product belongs to the store
+    const product = await this.productRepository.findOne({
+      where: { id: productId, storeId }
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found or does not belong to this store');
+    }
+
+    // Find and update the variant
+    const variant = await this.productVariantRepository.findOne({
+      where: { id: variantId, productId }
+    });
+
+    if (!variant) {
+      throw new NotFoundException('Product variant not found');
+    }
+
+    // Update the variant with the provided data
+    Object.assign(variant, updateVariantDto);
+    
+    return await this.productVariantRepository.save(variant);
+  }
+
+  // Digital Product Methods
+  async uploadDigitalFile(
+    userId: string, 
+    storeId: string, 
+    productId: string, 
+    file: any, 
+    createDto: CreateDigitalProductDto
+  ): Promise<{ digitalProduct: DigitalProduct }> {
+    // Verify product belongs to user and is digital type
+    const product = await this.productRepository.findOne({
+      where: { id: productId, storeId, store: { userId } },
+      relations: ['store']
+    });
+
+    if (!product) {
+      throw new NotFoundException('Product not found or does not belong to user');
+    }
+
+    if (product.type !== 'digital') {
+      throw new BadRequestException('Product must be of type digital');
+    }
+
+    // Check if digital product already exists
+    const existingDigitalProduct = await this.digitalProductRepository.findOne({
+      where: { productId }
+    });
+
+    if (existingDigitalProduct) {
+      throw new BadRequestException('Digital product already exists for this product');
+    }
+
+    // Calculate file hash
+    const fileHash = crypto.createHash('sha256').update(file.buffer).digest('hex');
+
+    // Create digital product record
+    const digitalProduct = new DigitalProduct();
+    digitalProduct.productId = productId;
+    digitalProduct.digitalType = createDto.digitalType as any;
+    digitalProduct.accessControlType = createDto.accessControlType as any;
+    digitalProduct.fileName = file.originalname;
+    digitalProduct.filePath = file.filename;
+    digitalProduct.fileSize = file.size;
+    digitalProduct.fileType = path.extname(file.originalname);
+    digitalProduct.mimeType = file.mimetype;
+    digitalProduct.fileHash = fileHash;
+    digitalProduct.accessPassword = createDto.accessPassword || null;
+    digitalProduct.accessDurationHours = createDto.accessDurationHours || null;
+    digitalProduct.maxDownloads = createDto.maxDownloads;
+    digitalProduct.maxConcurrentUsers = createDto.maxConcurrentUsers;
+    digitalProduct.watermarkEnabled = createDto.watermarkEnabled;
+    digitalProduct.watermarkText = createDto.watermarkText || null;
+    digitalProduct.autoDeliver = createDto.autoDeliver;
+    digitalProduct.deliveryEmailTemplate = createDto.deliveryEmailTemplate || null;
+    digitalProduct.deliverySubject = createDto.deliverySubject || null;
+    digitalProduct.ipRestriction = createDto.ipRestriction;
+    digitalProduct.allowedIps = createDto.allowedIps || null;
+    digitalProduct.deviceFingerprinting = createDto.deviceFingerprinting;
+    digitalProduct.preventScreenshots = createDto.preventScreenshots;
+    digitalProduct.preventPrinting = createDto.preventPrinting;
+    digitalProduct.preventCopying = createDto.preventCopying;
+    digitalProduct.viewerType = createDto.viewerType;
+    digitalProduct.viewerConfig = createDto.viewerConfig || null;
+
+    const savedDigitalProduct = await this.digitalProductRepository.save(digitalProduct);
+
+    return { digitalProduct: savedDigitalProduct };
+  }
+
+  async getDigitalProduct(userId: string, storeId: string, productId: string): Promise<DigitalProduct> {
+    const digitalProduct = await this.digitalProductRepository.findOne({
+      where: { 
+        productId, 
+        product: { 
+          storeId, 
+          store: { userId } 
+        } 
+      },
+      relations: ['product', 'product.store']
+    });
+
+    if (!digitalProduct) {
+      throw new NotFoundException('Digital product not found');
+    }
+
+    return digitalProduct;
+  }
+
+  async updateDigitalProduct(
+    userId: string, 
+    storeId: string, 
+    productId: string, 
+    updateDto: UpdateDigitalProductDto
+  ): Promise<DigitalProduct> {
+    const digitalProduct = await this.getDigitalProduct(userId, storeId, productId);
+
+    Object.assign(digitalProduct, updateDto);
+    const updatedDigitalProduct = await this.digitalProductRepository.save(digitalProduct);
+
+    return updatedDigitalProduct;
+  }
+
+  async getDigitalProductAnalytics(userId: string, storeId: string, productId: string): Promise<any> {
+    const digitalProduct = await this.getDigitalProduct(userId, storeId, productId);
+    return await this.digitalDeliveryService.getAccessAnalytics(digitalProduct.id);
+  }
+
+  async getDigitalProductAccess(
+    userId: string, 
+    storeId: string, 
+    productId: string, 
+    page: number = 1, 
+    limit: number = 20
+  ): Promise<{ accessRecords: any[]; pagination: any }> {
+    const digitalProduct = await this.getDigitalProduct(userId, storeId, productId);
+
+    const [accessRecords, total] = await this.digitalAccessRepository.findAndCount({
+      where: { digitalProductId: digitalProduct.id },
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+      relations: ['user', 'order']
+    });
+
+    return {
+      accessRecords: accessRecords.map(access => ({
+        id: access.id,
+        customerEmail: access.customerEmail,
+        customerName: access.customerName,
+        accessType: access.accessType,
+        status: access.status,
+        accessCount: access.accessCount,
+        downloadCount: access.downloadCount,
+        lastAccessedAt: access.lastAccessedAt,
+        expiresAt: access.expiresAt,
+        createdAt: access.createdAt
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
   }
 }

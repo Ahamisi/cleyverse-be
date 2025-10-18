@@ -1,10 +1,43 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
@@ -14,10 +47,15 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PublicProductController = exports.ProductController = void 0;
 const common_1 = require("@nestjs/common");
+const platform_express_1 = require("@nestjs/platform-express");
 const jwt_auth_guard_1 = require("../../../common/guards/jwt-auth.guard");
 const product_service_1 = require("../services/product.service");
 const product_dto_1 = require("../dto/product.dto");
 const search_dto_1 = require("../dto/search.dto");
+const digital_product_dto_1 = require("../dto/digital-product.dto");
+const multer = __importStar(require("multer"));
+const path = __importStar(require("path"));
+const crypto = __importStar(require("crypto"));
 let ProductController = class ProductController {
     productService;
     constructor(productService) {
@@ -71,9 +109,33 @@ let ProductController = class ProductController {
         const product = await this.productService.duplicateProduct(req.user.userId, storeId, id);
         return { message: 'Product duplicated successfully', product };
     }
+    async updateVariant(req, storeId, id, variantId, updateVariantDto) {
+        const variant = await this.productService.updateProductVariant(req.user.userId, storeId, id, variantId, updateVariantDto);
+        return { message: 'Product variant updated successfully', variant };
+    }
     async remove(req, storeId, id) {
         await this.productService.deleteProduct(req.user.userId, storeId, id);
         return { message: 'Product deleted successfully' };
+    }
+    async uploadDigitalFile(storeId, productId, file, createDto, req) {
+        const result = await this.productService.uploadDigitalFile(req.user.userId, storeId, productId, file, createDto);
+        return { message: 'Digital file uploaded successfully', ...result };
+    }
+    async getDigitalProduct(storeId, productId, req) {
+        const digitalProduct = await this.productService.getDigitalProduct(req.user.userId, storeId, productId);
+        return { message: 'Digital product retrieved successfully', digitalProduct };
+    }
+    async updateDigitalProduct(storeId, productId, updateDto, req) {
+        const digitalProduct = await this.productService.updateDigitalProduct(req.user.userId, storeId, productId, updateDto);
+        return { message: 'Digital product updated successfully', digitalProduct };
+    }
+    async getDigitalProductAnalytics(storeId, productId, req) {
+        const analytics = await this.productService.getDigitalProductAnalytics(req.user.userId, storeId, productId);
+        return { message: 'Digital product analytics retrieved successfully', analytics };
+    }
+    async getDigitalProductAccess(storeId, productId, page = 1, limit = 20, req) {
+        const result = await this.productService.getDigitalProductAccess(req.user.userId, storeId, productId, page, limit);
+        return { message: 'Digital product access records retrieved successfully', ...result };
     }
 };
 exports.ProductController = ProductController;
@@ -200,6 +262,18 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], ProductController.prototype, "duplicate", null);
 __decorate([
+    (0, common_1.Put)(':id/variants/:variantId'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)('storeId')),
+    __param(2, (0, common_1.Param)('id')),
+    __param(3, (0, common_1.Param)('variantId')),
+    __param(4, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String, String, Object]),
+    __metadata("design:returntype", Promise)
+], ProductController.prototype, "updateVariant", null);
+__decorate([
     (0, common_1.Delete)(':id'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __param(0, (0, common_1.Request)()),
@@ -209,6 +283,96 @@ __decorate([
     __metadata("design:paramtypes", [Object, String, String]),
     __metadata("design:returntype", Promise)
 ], ProductController.prototype, "remove", null);
+__decorate([
+    (0, common_1.Post)(':id/digital/upload'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file', {
+        storage: multer.diskStorage({
+            destination: (req, file, cb) => {
+                const uploadPath = path.join(process.env.DIGITAL_FILES_PATH || './uploads/digital');
+                cb(null, uploadPath);
+            },
+            filename: (req, file, cb) => {
+                const uniqueSuffix = crypto.randomBytes(16).toString('hex');
+                const ext = path.extname(file.originalname);
+                cb(null, `${uniqueSuffix}${ext}`);
+            }
+        }),
+        limits: {
+            fileSize: 100 * 1024 * 1024,
+        },
+        fileFilter: (req, file, cb) => {
+            const allowedTypes = [
+                'application/pdf',
+                'application/epub+zip',
+                'application/mobi',
+                'audio/mpeg',
+                'audio/wav',
+                'video/mp4',
+                'video/avi',
+                'application/zip',
+                'application/x-zip-compressed'
+            ];
+            if (allowedTypes.includes(file.mimetype)) {
+                cb(null, true);
+            }
+            else {
+                cb(new Error('File type not allowed'), false);
+            }
+        }
+    })),
+    __param(0, (0, common_1.Param)('storeId')),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.UploadedFile)()),
+    __param(3, (0, common_1.Body)()),
+    __param(4, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object, digital_product_dto_1.CreateDigitalProductDto, Object]),
+    __metadata("design:returntype", Promise)
+], ProductController.prototype, "uploadDigitalFile", null);
+__decorate([
+    (0, common_1.Get)(':id/digital'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Param)('storeId')),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", Promise)
+], ProductController.prototype, "getDigitalProduct", null);
+__decorate([
+    (0, common_1.Put)(':id/digital'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Param)('storeId')),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Body)()),
+    __param(3, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, digital_product_dto_1.UpdateDigitalProductDto, Object]),
+    __metadata("design:returntype", Promise)
+], ProductController.prototype, "updateDigitalProduct", null);
+__decorate([
+    (0, common_1.Get)(':id/digital/analytics'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Param)('storeId')),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", Promise)
+], ProductController.prototype, "getDigitalProductAnalytics", null);
+__decorate([
+    (0, common_1.Get)(':id/digital/access'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Param)('storeId')),
+    __param(1, (0, common_1.Param)('id')),
+    __param(2, (0, common_1.Query)('page')),
+    __param(3, (0, common_1.Query)('limit')),
+    __param(4, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Number, Number, Object]),
+    __metadata("design:returntype", Promise)
+], ProductController.prototype, "getDigitalProductAccess", null);
 exports.ProductController = ProductController = __decorate([
     (0, common_1.Controller)('stores/:storeId/products'),
     __metadata("design:paramtypes", [product_service_1.ProductService])

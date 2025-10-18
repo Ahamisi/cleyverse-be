@@ -3,15 +3,22 @@ import { Product, ProductStatus } from '../entities/product.entity';
 import { ProductImage } from '../entities/product-image.entity';
 import { ProductVariant } from '../entities/product-variant.entity';
 import { Store } from '../entities/store.entity';
+import { DigitalProduct } from '../entities/digital-product.entity';
+import { DigitalAccess } from '../entities/digital-access.entity';
 import { CreateProductDto, UpdateProductDto, UpdateProductStatusDto, PublishProductDto } from '../dto/product.dto';
 import { SearchProductsDto, BulkUpdateTagsDto, BulkUpdatePriceDto } from '../dto/search.dto';
+import { CreateDigitalProductDto, UpdateDigitalProductDto } from '../dto/digital-product.dto';
 import { TrackClickDto } from '../../links/dto/link.dto';
+import { DigitalDeliveryService } from './digital-delivery.service';
 export declare class ProductService {
     private readonly productRepository;
     private readonly productImageRepository;
     private readonly productVariantRepository;
     private readonly storeRepository;
-    constructor(productRepository: Repository<Product>, productImageRepository: Repository<ProductImage>, productVariantRepository: Repository<ProductVariant>, storeRepository: Repository<Store>);
+    private readonly digitalProductRepository;
+    private readonly digitalAccessRepository;
+    private readonly digitalDeliveryService;
+    constructor(productRepository: Repository<Product>, productImageRepository: Repository<ProductImage>, productVariantRepository: Repository<ProductVariant>, storeRepository: Repository<Store>, digitalProductRepository: Repository<DigitalProduct>, digitalAccessRepository: Repository<DigitalAccess>, digitalDeliveryService: DigitalDeliveryService);
     createProduct(userId: string, storeId: string, createProductDto: CreateProductDto): Promise<Product>;
     getStoreProducts(userId: string, storeId: string, includeInactive?: boolean): Promise<Product[]>;
     getProductById(userId: string, storeId: string, productId: string): Promise<Product>;
@@ -259,4 +266,15 @@ export declare class ProductService {
     private getAvailableCategories;
     private getPriceRange;
     trackProductView(storeId: string, productHandle: string, trackClickDto: TrackClickDto): Promise<string>;
+    updateProductVariant(userId: string, storeId: string, productId: string, variantId: string, updateVariantDto: any): Promise<ProductVariant>;
+    uploadDigitalFile(userId: string, storeId: string, productId: string, file: any, createDto: CreateDigitalProductDto): Promise<{
+        digitalProduct: DigitalProduct;
+    }>;
+    getDigitalProduct(userId: string, storeId: string, productId: string): Promise<DigitalProduct>;
+    updateDigitalProduct(userId: string, storeId: string, productId: string, updateDto: UpdateDigitalProductDto): Promise<DigitalProduct>;
+    getDigitalProductAnalytics(userId: string, storeId: string, productId: string): Promise<any>;
+    getDigitalProductAccess(userId: string, storeId: string, productId: string, page?: number, limit?: number): Promise<{
+        accessRecords: any[];
+        pagination: any;
+    }>;
 }
