@@ -118,7 +118,7 @@ export class UploadController {
   }
 
   // Get signed download URL
-  @Get('download/:key(*)')
+  @Get('download/:key')
   @UseGuards(JwtAuthGuard)
   async getSignedDownloadUrl(
     @Param('key') key: string,
@@ -141,7 +141,7 @@ export class UploadController {
   }
 
   // Delete file
-  @Delete('file/:key(*)')
+  @Delete('file/:key')
   @UseGuards(JwtAuthGuard)
   async deleteFile(
     @Param('key') key: string,
@@ -194,7 +194,7 @@ export class UploadController {
   }
 
   // Get file info
-  @Get('file/:key(*)')
+  @Get('file/:key')
   @UseGuards(JwtAuthGuard)
   async getFileInfo(
     @Param('key') key: string,

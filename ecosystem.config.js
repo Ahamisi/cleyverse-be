@@ -10,7 +10,7 @@ module.exports = {
     env: {
       NODE_ENV: 'production',
       PORT: 3000,
-      DATABASE_URL: 'postgresql://cleyverse:Cleyverse2024%21SecureDB%23@cleyverse-db-staging.cwlea4ym8h2p.us-east-1.rds.amazonaws.com:5432/cleyverse_staging',
+      DATABASE_URL: 'postgresql://cleyverse:Cleyverse2024%21SecureDB%23@cleyverse-db-staging.cwlea4ym8h2p.us-east-1.rds.amazonaws.com:5432/cleyverse',
       JWT_SECRET: 'Cleyverse2024!JWTSecret#SuperSecureKeyForProduction',
       PAYSTACK_SECRET_KEY: 'sk_test_b64f9f3df70c270f5ff191b77c7c4abe7e74ea50',
       PAYSTACK_PUBLIC_KEY: 'pk_test_a095478e878b67ff99f634c943d5ac36a2788684',
