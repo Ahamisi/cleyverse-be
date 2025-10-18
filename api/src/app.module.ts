@@ -11,6 +11,7 @@ import { FormsModule } from './modules/forms/forms.module';
 import { ShopModule } from './modules/shop/shop.module';
 import { EventsModule } from './modules/events/events.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { UploadModule } from './modules/upload/upload.module';
 import { User } from './modules/users/entities/user.entity';
 import { EmailVerification } from './modules/users/entities/email-verification.entity';
 import { CreatorSettings } from './modules/users/entities/creator-settings.entity';
@@ -40,6 +41,7 @@ import { OrderItem } from './modules/shop/entities/order-item.entity';
 import { StoreBalance } from './modules/shop/entities/store-balance.entity';
 import { DigitalProduct } from './modules/shop/entities/digital-product.entity';
 import { DigitalAccess } from './modules/shop/entities/digital-access.entity';
+import { UserFile } from './modules/upload/entities/user-file.entity';
 import { TempCode } from './modules/auth/entities/temp-code.entity';
 import { TrustedDevice } from './modules/auth/entities/trusted-device.entity';
 import { SharedModule } from './shared/shared.module';
@@ -50,7 +52,7 @@ import { SharedModule } from './shared/shared.module';
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
-      entities: [User, EmailVerification, CreatorSettings, CreatorPayoutSettings, Link, SocialLink, Collection, Form, FormField, FormSubmission, Store, Product, ProductImage, ProductVariant, StoreOnboarding, Order, OrderItem, StoreBalance, DigitalProduct, DigitalAccess, Event, EventGuest, EventHost, EventVendor, EventProduct, EventRegistrationQuestion, EventGuestAnswer, Payment, Invoice, Transaction, TempCode, TrustedDevice],
+      entities: [User, EmailVerification, CreatorSettings, CreatorPayoutSettings, Link, SocialLink, Collection, Form, FormField, FormSubmission, Store, Product, ProductImage, ProductVariant, StoreOnboarding, Order, OrderItem, StoreBalance, DigitalProduct, DigitalAccess, UserFile, Event, EventGuest, EventHost, EventVendor, EventProduct, EventRegistrationQuestion, EventGuestAnswer, Payment, Invoice, Transaction, TempCode, TrustedDevice],
       synchronize: true, // Only for development - will change to migrations
       logging: process.env.NODE_ENV === 'development',
     }),
@@ -63,6 +65,7 @@ import { SharedModule } from './shared/shared.module';
     ShopModule,
     EventsModule,
     PaymentsModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],

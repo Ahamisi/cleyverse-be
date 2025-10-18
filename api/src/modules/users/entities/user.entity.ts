@@ -109,4 +109,7 @@ export class User extends BaseEntity {
 
   @OneToMany('EventVendor', 'user')
   eventVendors: any[];
+
+  @OneToMany('UserFile', 'user')
+  files: any[];
 }

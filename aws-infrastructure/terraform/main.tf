@@ -202,6 +202,14 @@ resource "aws_security_group" "db_sg" {
     security_groups = [aws_security_group.web_sg.id]
   }
 
+  # Allow EC2 instance to connect to RDS
+  ingress {
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16"]  # VPC CIDR block
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -224,6 +232,21 @@ resource "aws_db_subnet_group" "cleyverse_db_subnet_group" {
   }
 }
 
+# DB Parameter Group
+resource "aws_db_parameter_group" "cleyverse_db_params" {
+  family = "postgres15"
+  name   = "cleyverse-db-params-${var.environment}"
+
+  parameter {
+    name  = "rds.force_ssl"
+    value = "0"
+  }
+
+  tags = {
+    Name = "cleyverse-db-params-${var.environment}"
+  }
+}
+
 # RDS Instance (PostgreSQL)
 resource "aws_db_instance" "cleyverse_db" {
   identifier = "cleyverse-db-${var.environment}"
@@ -231,6 +254,9 @@ resource "aws_db_instance" "cleyverse_db" {
   # GDPR Compliance: Encrypted storage
   storage_encrypted = true
   kms_key_id        = aws_kms_key.db_key.arn
+
+  # Use custom parameter group
+  parameter_group_name = aws_db_parameter_group.cleyverse_db_params.name
 
   # GDPR Compliance: Automated backups with retention
   backup_retention_period = 30

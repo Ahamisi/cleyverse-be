@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AWSSESService } from './aws-ses.service';
+import { SESClient, SendEmailCommand, SendEmailCommandInput } from '@aws-sdk/client-ses';
+import { ConfigService } from '@nestjs/config';
 
 export interface EmailData {
   to: string;
@@ -8,113 +9,147 @@ export interface EmailData {
   data: Record<string, any>;
 }
 
+export interface SESEmailData {
+  to: string;
+  subject: string;
+  htmlBody: string;
+  textBody?: string;
+  fromEmail?: string;
+  fromName?: string;
+}
+
 @Injectable()
-export class EmailService {
-  private readonly logger = new Logger(EmailService.name);
+export class AWSSESService {
+  private readonly logger = new Logger(AWSSESService.name);
+  private readonly sesClient: SESClient;
+  private readonly fromEmail: string;
+  private readonly fromName: string;
 
-  constructor(private readonly awsSESService: AWSSESService) {}
+  constructor(private readonly configService: ConfigService) {
+    this.sesClient = new SESClient({
+      region: this.configService.get('AWS_REGION', 'us-east-1'),
+      credentials: {
+        accessKeyId: this.configService.get('AWS_ACCESS_KEY_ID') || '',
+        secretAccessKey: this.configService.get('AWS_SECRET_ACCESS_KEY') || '',
+      },
+    });
 
-  async sendEmail(emailData: EmailData): Promise<void> {
+    this.fromEmail = this.configService.get('SES_FROM_EMAIL', 'noreply@cleyfi.com');
+    this.fromName = this.configService.get('SES_FROM_NAME', 'Cleyverse');
+  }
+
+  async sendEmail(emailData: SESEmailData): Promise<void> {
     try {
-      // Convert template-based email to SES format
-      const htmlBody = this.generateEmailHTML(emailData.template, emailData.data);
-      const textBody = this.generateEmailText(emailData.template, emailData.data);
+      const params: SendEmailCommandInput = {
+        Source: `${this.fromName} <${emailData.fromEmail || this.fromEmail}>`,
+        Destination: {
+          ToAddresses: [emailData.to],
+        },
+        Message: {
+          Subject: {
+            Data: emailData.subject,
+            Charset: 'UTF-8',
+          },
+          Body: {
+            Html: {
+              Data: emailData.htmlBody,
+              Charset: 'UTF-8',
+            },
+            ...(emailData.textBody && {
+              Text: {
+                Data: emailData.textBody,
+                Charset: 'UTF-8',
+              },
+            }),
+          },
+        },
+      };
 
-      await this.awsSESService.sendEmail({
-        to: emailData.to,
-        subject: emailData.subject,
-        htmlBody,
-        textBody,
-      });
+      const command = new SendEmailCommand(params);
+      const result = await this.sesClient.send(command);
 
-      this.logger.log(`Email sent successfully to ${emailData.to}`);
+      this.logger.log(`Email sent successfully to ${emailData.to}. MessageId: ${result.MessageId}`);
     } catch (error) {
       this.logger.error(`Failed to send email to ${emailData.to}:`, error);
-      // Fallback to console logging for development
-      console.log('Email fallback (SES failed):', {
-        to: emailData.to,
-        subject: emailData.subject,
-        template: emailData.template,
-        data: emailData.data
-      });
+      throw new Error(`Failed to send email: ${error.message}`);
     }
   }
 
+  // Template-based email methods
   async sendTempCodeEmail(email: string, username: string, code: string, reason: string): Promise<void> {
+    const htmlBody = this.generateTempCodeEmailHTML(username, code, reason);
+    const textBody = this.generateTempCodeEmailText(username, code, reason);
+
     await this.sendEmail({
       to: email,
       subject: `Your temporary access code - ${reason}`,
-      template: 'temp-code',
-      data: { username, code, reason }
+      htmlBody,
+      textBody,
     });
   }
 
   async sendWelcomeEmail(email: string, username: string): Promise<void> {
+    const htmlBody = this.generateWelcomeEmailHTML(username);
+    const textBody = this.generateWelcomeEmailText(username);
+
     await this.sendEmail({
       to: email,
       subject: 'Welcome to Cleyverse!',
-      template: 'welcome',
-      data: { username }
+      htmlBody,
+      textBody,
     });
   }
 
   async sendVerificationEmail(email: string, username: string, verificationUrl: string): Promise<void> {
+    const htmlBody = this.generateVerificationEmailHTML(username, verificationUrl);
+    const textBody = this.generateVerificationEmailText(username, verificationUrl);
+
     await this.sendEmail({
       to: email,
       subject: 'Verify your email address',
-      template: 'verification',
-      data: { username, verificationUrl }
+      htmlBody,
+      textBody,
     });
   }
 
-  // Template generation methods
-  private generateEmailHTML(template: string, data: Record<string, any>): string {
-    switch (template) {
-      case 'temp-code':
-        return this.generateTempCodeEmailHTML(data.username, data.code, data.reason);
-      case 'welcome':
-        return this.generateWelcomeEmailHTML(data.username);
-      case 'verification':
-        return this.generateVerificationEmailHTML(data.username, data.verificationUrl);
-      case 'digital-product-access':
-        return this.generateDigitalProductAccessEmailHTML(
-          data.customerName,
-          data.productTitle,
-          data.accessLink,
-          data.accessType,
-          data.expiresAt,
-          data.maxDownloads,
-          data.watermarkText
-        );
-      default:
-        return this.generateGenericEmailHTML(data);
-    }
+  async sendDigitalProductAccessEmail(
+    email: string,
+    customerName: string,
+    productTitle: string,
+    accessLink: string,
+    accessType: string,
+    expiresAt: string,
+    maxDownloads: string,
+    watermarkText: string
+  ): Promise<void> {
+    const htmlBody = this.generateDigitalProductAccessEmailHTML(
+      customerName,
+      productTitle,
+      accessLink,
+      accessType,
+      expiresAt,
+      maxDownloads,
+      watermarkText
+    );
+    const textBody = this.generateDigitalProductAccessEmailText(
+      customerName,
+      productTitle,
+      accessLink,
+      accessType,
+      expiresAt,
+      maxDownloads,
+      watermarkText
+    );
+
+    await this.sendEmail({
+      to: email,
+      subject: `Your Digital Product: ${productTitle}`,
+      htmlBody,
+      textBody,
+    });
   }
 
-  private generateEmailText(template: string, data: Record<string, any>): string {
-    switch (template) {
-      case 'temp-code':
-        return this.generateTempCodeEmailText(data.username, data.code, data.reason);
-      case 'welcome':
-        return this.generateWelcomeEmailText(data.username);
-      case 'verification':
-        return this.generateVerificationEmailText(data.username, data.verificationUrl);
-      case 'digital-product-access':
-        return this.generateDigitalProductAccessEmailText(
-          data.customerName,
-          data.productTitle,
-          data.accessLink,
-          data.accessType,
-          data.expiresAt,
-          data.maxDownloads,
-          data.watermarkText
-        );
-      default:
-        return this.generateGenericEmailText(data);
-    }
-  }
-
-  // Template generators (reusing from AWSSESService)
+  // Email template generators
   private generateTempCodeEmailHTML(username: string, code: string, reason: string): string {
     return `
       <!DOCTYPE html>
@@ -368,41 +403,5 @@ export class EmailService {
       
       © 2024 Cleyverse. All rights reserved.
     `;
-  }
-
-  private generateGenericEmailHTML(data: Record<string, any>): string {
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Cleyverse Notification</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #4F46E5; color: white; padding: 20px; text-align: center; }
-          .content { padding: 20px; background: #f9f9f9; }
-          .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Cleyverse</h1>
-          </div>
-          <div class="content">
-            <p>${JSON.stringify(data, null, 2)}</p>
-          </div>
-          <div class="footer">
-            <p>© 2024 Cleyverse. All rights reserved.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-  }
-
-  private generateGenericEmailText(data: Record<string, any>): string {
-    return JSON.stringify(data, null, 2);
   }
 }
