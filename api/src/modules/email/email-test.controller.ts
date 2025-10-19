@@ -1,11 +1,18 @@
 import { Controller, Post, Body, UseGuards, Request, Get, Query } from '@nestjs/common';
+import { IsEmail, IsIn, IsOptional, IsString } from 'class-validator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { EmailService } from '../../shared/services/email.service';
 import { AWSSESService } from '../../shared/services/aws-ses.service';
 
 export class TestEmailDto {
+  @IsEmail()
   to: string;
+
+  @IsIn(['welcome', 'temp-code', 'verification', 'digital-product'])
   type: 'welcome' | 'temp-code' | 'verification' | 'digital-product';
+
+  @IsOptional()
+  @IsString()
   customMessage?: string;
 }
 
