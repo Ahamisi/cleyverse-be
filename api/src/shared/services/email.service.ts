@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AWSSESService } from './aws-ses.service';
+import { EmailTrackingService } from './email-tracking.service';
+import { EmailStatus } from '../entities/email-log.entity';
 
 export interface EmailData {
   to: string;
@@ -12,7 +14,10 @@ export interface EmailData {
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
 
-  constructor(private readonly awsSESService: AWSSESService) {}
+  constructor(
+    private readonly awsSESService: AWSSESService,
+    private readonly emailTrackingService: EmailTrackingService,
+  ) {}
 
   async sendEmail(emailData: EmailData): Promise<void> {
     try {
@@ -20,16 +25,37 @@ export class EmailService {
       const htmlBody = this.generateEmailHTML(emailData.template, emailData.data);
       const textBody = this.generateEmailText(emailData.template, emailData.data);
 
-      await this.awsSESService.sendEmail({
+      const result = await this.awsSESService.sendEmail({
         to: emailData.to,
         subject: emailData.subject,
         htmlBody,
         textBody,
       });
 
+      // Log email tracking
+      await this.emailTrackingService.logEmailSent({
+        to: emailData.to,
+        subject: emailData.subject,
+        template: emailData.template,
+        status: EmailStatus.SENT,
+        messageId: result?.MessageId || null,
+        metadata: emailData.data,
+      });
+
       this.logger.log(`Email sent successfully to ${emailData.to}`);
     } catch (error) {
       this.logger.error(`Failed to send email to ${emailData.to}:`, error);
+      
+      // Log failed email
+      await this.emailTrackingService.logEmailSent({
+        to: emailData.to,
+        subject: emailData.subject,
+        template: emailData.template,
+        status: EmailStatus.FAILED,
+        error: error.message,
+        metadata: emailData.data,
+      });
+
       // Fallback to console logging for development
       console.log('Email fallback (SES failed):', {
         to: emailData.to,

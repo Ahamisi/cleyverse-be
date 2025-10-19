@@ -38,7 +38,7 @@ export class AWSSESService {
     this.fromName = this.configService.get('SES_FROM_NAME', 'Cleyverse');
   }
 
-  async sendEmail(emailData: SESEmailData): Promise<void> {
+  async sendEmail(emailData: SESEmailData): Promise<any> {
     try {
       const params: SendEmailCommandInput = {
         Source: `${this.fromName} <${emailData.fromEmail || this.fromEmail}>`,
@@ -69,6 +69,8 @@ export class AWSSESService {
       const result = await this.sesClient.send(command);
 
       this.logger.log(`Email sent successfully to ${emailData.to}. MessageId: ${result.MessageId}`);
+      
+      return result;
     } catch (error) {
       this.logger.error(`Failed to send email to ${emailData.to}:`, error);
       throw new Error(`Failed to send email: ${error.message}`);
