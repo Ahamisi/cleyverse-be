@@ -17,10 +17,8 @@ export class EmailTestController {
   ) {}
 
   @Post('send-test')
-  @UseGuards(JwtAuthGuard)
   async sendTestEmail(
     @Body() testEmailDto: TestEmailDto,
-    @Request() req,
   ) {
     const { to, type, customMessage } = testEmailDto;
 
@@ -85,7 +83,6 @@ export class EmailTestController {
   }
 
   @Get('templates')
-  @UseGuards(JwtAuthGuard)
   async getEmailTemplates() {
     return {
       message: 'Available email templates',
@@ -132,7 +129,6 @@ export class EmailTestController {
   }
 
   @Get('status')
-  @UseGuards(JwtAuthGuard)
   async getEmailServiceStatus() {
     return {
       message: 'Email service status',
